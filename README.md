@@ -1,3 +1,3 @@
-# aoc2016_rust
+# aoc2023_rust
 
-Advent of Code 2016 in Rust
+Advent of Code 2023 in Rust
