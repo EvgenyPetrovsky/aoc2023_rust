@@ -1,0 +1,9 @@
+[package]
+name = "aoc2016-rust"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = "4.4.10"
+md5 = "0.7.0"
+regex = "1.10.2"
