@@ -29,7 +29,7 @@ impl DaySolution {
 
     fn parse_one_line_2(line: &str) -> u32 {
 
-        fn extract_digit_l(x: &str) -> u32 {
+        fn extract_digit(x: &str) -> u32 {
             match x {
                 "0" | "zero"  => 0,
                 "1" | "one"   => 1,
@@ -44,42 +44,23 @@ impl DaySolution {
                 other => panic!("unrecognized digit {}", other),
             }
         }
-        fn extract_digit_r(x: &str) -> u32 {
-            match x {
-                "zerone"      => 1,
-                "0" | "zero"  => 0,
-                "1" | "one"   => 1,
-                "twone"       => 1,
-                "eightwone"   => 1,
-                "2" | "two"   => 2,
-                "eightwo"     => 2,
-                "3" | "three" => 3,
-                "eighthree"   => 3,
-                "4" | "four"  => 4,
-                "5" | "five"  => 5,
-                "6" | "six"   => 6,
-                "7" | "seven" => 7,
-                "8" | "eight" => 8,
-                "9" | "nine"  => 9,
-                other => panic!("unrecognized digit {}", other),
-            }
-        }
-
+        // take first occurence
         let re_l = Regex::new(r#"\d|zero|one|two|three|four|five|six|seven|eight|nine"#).unwrap();
+        // be greedy and take it up to last occurence
         let re_r = Regex::new(r#"\w*(\d|zero|one|two|three|four|five|six|seven|eight|nine)"#).unwrap();
         let d1 =
         re_l
             .captures_iter(line)
             .nth(0)
             .map(|cap| cap.get(0).unwrap().as_str())
-            .map(extract_digit_l)
+            .map(extract_digit)
             .unwrap();
         let d0 =
         re_r
             .captures_iter(line)
             .last()
             .map(|cap| cap.get(1).unwrap().as_str())
-            .map(extract_digit_r)
+            .map(extract_digit)
             .unwrap();
         d1 * 10 + d0
     }
