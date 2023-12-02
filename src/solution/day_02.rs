@@ -6,7 +6,7 @@ pub struct BallSet {
     green: u8,
     blue: u8
 }
-
+#[derive(Debug, PartialEq)]
 pub struct Game {id: u32, sets: Vec<BallSet>}
 
 type P = Vec<Game>;
@@ -117,7 +117,7 @@ mod tests {
 
     //use super::{Room, DaySolution};
 
-    use crate::solution::day_02::BallSet;
+    use crate::solution::day_02::{BallSet, Game, DaySolution};
 
     #[test]
     fn parse_one_line() {
@@ -125,7 +125,10 @@ mod tests {
         //BallSet { red: 4, green: 0, blue: 3 },
         //BallSet { red: 1, green: 2, blue: 6 },
         //BallSet { red: 0, green: 2, blue: 0 }
-        assert_eq!(super::DaySolution::parse_one_line(line), vec![BallSet{red:0, green:0, blue:0}])
+        assert_eq!(
+            DaySolution::parse_one_line(line),
+            Game { id: 1, sets: vec![BallSet{red:0, green:0, blue:0}] }
+        )
     }
 
 }
