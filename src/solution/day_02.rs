@@ -4,24 +4,38 @@ use regex::Regex;
 pub struct BallSet {
     red: u8,
     green: u8,
-    blue: u8
+    blue: u8,
 }
 #[derive(Debug, PartialEq)]
-pub struct Game {id: u32, sets: Vec<BallSet>}
+pub struct Game {
+    id: u32,
+    sets: Vec<BallSet>,
+}
 
 type P = Vec<Game>;
 
 pub struct DaySolution(P);
 
 impl DaySolution {
+    const ZERO_SET: BallSet = BallSet {
+        red: 0,
+        green: 0,
+        blue: 0,
+    };
 
-    const ZERO_SET: BallSet = BallSet {red: 0, green: 0, blue: 0};
-
-    fn add_ball_sets(a: BallSet, b: BallSet) -> BallSet {
+    fn sum_ball_sets(a: BallSet, b: BallSet) -> BallSet {
         BallSet {
             red: a.red + b.red,
             green: a.green + b.green,
-            blue: a.blue + b.blue
+            blue: a.blue + b.blue,
+        }
+    }
+
+    fn max_ball_sets(a: BallSet, b: BallSet) -> BallSet {
+        BallSet {
+            red: a.red.max(b.red),
+            green: a.green.max(b.green),
+            blue: a.blue.max(b.blue),
         }
     }
 
@@ -33,14 +47,22 @@ impl DaySolution {
                 let n: u8 = c.get(1).unwrap().as_str().parse().unwrap();
                 let c: &str = c.get(2).unwrap().as_str();
                 match c {
-                    "red" => BallSet{red: n, ..Self::ZERO_SET},
-                    "green" => BallSet{green: n, ..Self::ZERO_SET},
-                    "blue" => BallSet{blue: n, ..Self::ZERO_SET},
+                    "red" => BallSet {
+                        red: n,
+                        ..Self::ZERO_SET
+                    },
+                    "green" => BallSet {
+                        green: n,
+                        ..Self::ZERO_SET
+                    },
+                    "blue" => BallSet {
+                        blue: n,
+                        ..Self::ZERO_SET
+                    },
                     _ => panic!("unrecognized color: '{}'", c),
                 }
             })
-            .fold(Self::ZERO_SET, Self::add_ball_sets)
-
+            .fold(Self::ZERO_SET, Self::sum_ball_sets)
     }
 
     fn parse_one_line(line: &str) -> Game {
@@ -54,19 +76,19 @@ impl DaySolution {
             })
             .unwrap();
         let re_set = Regex::new(r#"[\d a-z,]+"#).unwrap();
-        let game_sets =
-            re_set
+        let game_sets = re_set
             .captures_iter(game_sets)
             .map(|c| c.get(0).unwrap().as_str())
             .map(Self::parse_one_set)
             .collect();
-        Game{ id: game_id, sets: game_sets}
+        Game {
+            id: game_id,
+            sets: game_sets,
+        }
     }
 }
 
 impl super::Solution for DaySolution {
-
-
     type Answer = Option<u32>;
     type Problem = P;
 
@@ -92,22 +114,38 @@ impl super::Solution for DaySolution {
                 let folded_set =
                     g.sets
                     .iter()
-                    .fold(DaySolution::ZERO_SET,|z, &x| DaySolution::add_ball_sets(z, x));
+                    .fold(DaySolution::ZERO_SET,|z, &x| DaySolution::max_ball_sets(z, x));
                 (g.id, folded_set)
             })
-            .filter(|s| s.1.red <= max_r && s.1.green <= max_g && s.1.blue <= max_b)
+            .filter(|(_id, s)| {
+                let condition = s.red <= max_r && s.green <= max_g && s.blue <= max_b;
+                //println!("{} Game {:>3}: red: {:>2}, green: {:>2}, blue: {:>2}", if condition {'*'} else {' '}, _id, s.red, s.green, s.blue);
+                condition
+            })
             .fold(0, |z, x| z + x.0) as u32;
         Some(valid_id_sum)
     }
 
-    fn solve_part_2(_problem: Self::Problem) -> Self::Answer {
-        None
+    fn solve_part_2(problem: Self::Problem) -> Self::Answer {
+        let power_sum: u32 =
+            problem
+            .iter()
+            .map(|g| {
+                let folded_set =
+                    g.sets
+                    .iter()
+                    .fold(DaySolution::ZERO_SET,|z, &x| DaySolution::max_ball_sets(z, x));
+                folded_set
+            })
+            .map(|s| {s.red as u32 * s.green as u32 * s.blue as u32})
+            .sum();
+        Some(power_sum)
     }
 
     fn show_answer(answer: Self::Answer) -> String {
         match answer {
             Some(value) => format!("{}", value),
-            None => format!("")
+            None => format!(""),
         }
     }
 }
@@ -117,7 +155,7 @@ mod tests {
 
     //use super::{Room, DaySolution};
 
-    use crate::solution::day_02::{BallSet, Game, DaySolution};
+    use crate::solution::day_02::{BallSet, DaySolution, Game};
 
     #[test]
     fn parse_one_line() {
@@ -127,10 +165,16 @@ mod tests {
         //BallSet { red: 0, green: 2, blue: 0 }
         assert_eq!(
             DaySolution::parse_one_line(line),
-            Game { id: 1, sets: vec![BallSet{red:0, green:0, blue:0}] }
+            Game {
+                id: 1,
+                sets: vec![
+                    BallSet {red: 4, green: 0,blue: 3},
+                    BallSet {red: 1, green: 2,blue: 6},
+                    BallSet {red: 0, green: 2,blue: 0},
+                ]
+            }
         )
     }
-
 }
 
 //
