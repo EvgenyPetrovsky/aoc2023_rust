@@ -61,7 +61,7 @@ impl super::Solution for DaySolution {
     }
 
     fn solve_part_2(problem: Self::Problem) -> Self::Answer {
-        let mut card_count: CardCount = HashMap::from_iter((1..(problem.len()+1)).map(|x| (x as u32, 1_u32)));//new();
+        let mut card_count: CardCount = (1..(problem.len()+1)).map(|x| (x as u32, 1_u32)).collect();
         problem
         .iter()
         .for_each(|x| {
