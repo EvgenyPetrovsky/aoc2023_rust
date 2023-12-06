@@ -59,15 +59,30 @@ impl DaySolution {
             .collect()
     }
 
-    fn analytic_distance(race_time: &Time, press_time: &Time) -> Distance {
+    fn _analytic_distance(race_time: &Time, press_time: &Time) -> Distance {
         press_time * (race_time - press_time)
     }
-    fn new_record_time_span(race: Race) -> Timespan {
+    fn _new_record_time_span(race: Race) -> Timespan {
         let (race_time, record) = (race.time, race.record);
         (0..=race_time)
-            .map(|press_time| Self::analytic_distance(&race_time, &press_time))
+            .map(|press_time| Self::_analytic_distance(&race_time, &press_time))
             .filter(|d| *d > record)
             .count() as Timespan
+    }
+    fn _analytic_solution(race: Race) -> Timespan {
+        // r < x * (t - x)
+        // r < t*x - x^2
+        // x^2 - t*x + r < 0
+        // x^2 - t*x + r
+        let a: f64 = 1.;
+        let b: f64 = -(race.time as f64);
+        let c: f64 = race.record as f64;
+        let d: f64 = ((b.powf(2.) - 4. * a * c) as f64).powf(0.5);
+        let x1 = (- b - d) / (2. * a);
+        let x2 = (- b + d) / (2. * a);
+        let (x1_c, x2_f) = (x1.ceil(), x2.floor());
+        println!("discriminant: {:6.4}, answer 1: {:6.4}, answer 2: {:6.4}", d, x1, x2);
+        ((if x2 == x2_f {x2_f-1.} else {x2_f}) as u64) + 1 - ((if x1 == x1_c {x1_c + 1.} else {x1_c}) as u64)
     }
 }
 
@@ -88,7 +103,7 @@ impl super::Solution for DaySolution {
     fn solve_part_1(problem: Self::Problem) -> Self::Answer {
         let answer = problem
             .iter()
-            .map(|&race| DaySolution::new_record_time_span(race))
+            .map(|&race| DaySolution::_new_record_time_span(race))
             .product();
         Some(answer)
     }
@@ -96,7 +111,7 @@ impl super::Solution for DaySolution {
     fn solve_part_2(problem: Self::Problem) -> Self::Answer {
         let answer = problem
             .iter()
-            .map(|&race| DaySolution::new_record_time_span(race))
+            .map(|&race| DaySolution::_new_record_time_span(race))
             .product();
         Some(answer)
     }
@@ -113,6 +128,8 @@ impl super::Solution for DaySolution {
 mod tests {
 
     //use super::{Room, DaySolution};
+
+    use crate::solution::day_06::Timespan;
 
     use super::{DaySolution, Race, Part};
 
@@ -139,5 +156,21 @@ mod tests {
                 Race { time: 71530, record: 940200 }
             ]
         )
+    }
+
+    #[test]
+    fn _analytic_solution() {
+        assert_eq!(
+            DaySolution::_analytic_solution(Race{ time: 7, record: 9}),
+            4 as Timespan
+        );
+        assert_eq!(
+            DaySolution::_analytic_solution(Race{ time: 15, record: 40}),
+            8 as Timespan
+        );
+        assert_eq!(
+            DaySolution::_analytic_solution(Race{ time: 30, record: 200}),
+            9 as Timespan
+        );
     }
 }
