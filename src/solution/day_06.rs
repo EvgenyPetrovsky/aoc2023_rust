@@ -81,7 +81,6 @@ impl DaySolution {
         let x1 = (- b - d) / (2. * a);
         let x2 = (- b + d) / (2. * a);
         let (x1_c, x2_f) = (x1.ceil(), x2.floor());
-        println!("discriminant: {:6.4}, answer 1: {:6.4}, answer 2: {:6.4}", d, x1, x2);
         ((if x2 == x2_f {x2_f-1.} else {x2_f}) as u64) + 1 - ((if x1 == x1_c {x1_c + 1.} else {x1_c}) as u64)
     }
 }
