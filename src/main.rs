@@ -29,7 +29,7 @@ pub enum Mode {
 
 fn main() {
     let day = 7;
-    let mode = Mode::Test;
+    let mode = Mode::Real;
     let answer_1 = get_solution(day, Part::One, mode);
     let answer_2 = get_solution(day, Part::Two, mode);
     println!("The part 1 answer is: {}", answer_1);
