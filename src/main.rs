@@ -28,8 +28,8 @@ pub enum Mode {
 }
 
 fn main() {
-    let day = 7;
-    let mode = Mode::Real;
+    let day = 8;
+    let mode = Mode::Test;
     let answer_1 = get_solution(day, Part::One, mode);
     let answer_2 = get_solution(day, Part::Two, mode);
     println!("The part 1 answer is: {}", answer_1);
@@ -45,7 +45,7 @@ fn get_solution(day: Day, part: Part, mode: Mode) -> String {
         05 => solution::day_05::DaySolution::run(part, mode),
         06 => solution::day_06::DaySolution::run(part, mode),
         07 => solution::day_07::DaySolution::run(part, mode),
-        08 => solution::day_08::DaySolution::run(part, mode),
+        08 => solution::day_08::Day::run(part, mode),
         09 => solution::day_09::DaySolution::run(part, mode),
         10 => solution::day_10::DaySolution::run(part, mode),
         11 => solution::day_11::DaySolution::run(part, mode),
