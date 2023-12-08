@@ -140,26 +140,7 @@ impl super::Solution for Day {
             .map(|r| r + 1)
             .fold(1, |z, x| Day::lcm(z, x));
 
-            /*
-        let answer = instructions
-            .iter()
-            .cycle()
-            .fold_while((1_u64, start), |(step, locations), instruction| {
-                let new_locations: Vec<[u8; 3]> = locations
-                    .iter()
-                    .map(|l| Day::go_to_new_location(l, instruction, &network))
-                    .collect();
-                match step > 15_000_000_000 || new_locations.iter().all(|l| l[2] == b'Z') {
-                    false => Continue((step + 1, new_locations)),
-                    true => Done((step, new_locations)),
-                }
-            })
-            .into_inner()
-            .0 as u64;
-         */
         Some(answer)
-
-        //for instruction in (instructions.iter().cycle()) {
 
     }
 
