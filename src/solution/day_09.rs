@@ -49,12 +49,14 @@ impl DaySolution {
     // find next number in series
     fn find_next_number(acc: Number, series: &Series) -> Number {
         /*
-        take differentiate the series
-          if it has only 0 then return 3
-          if it is not only 0 series then
+        differentiate the series
+          if it becomes 0-series then return 0
+          otherwise
             return last elem of original series
-            plus a number given by application of this function recursively to differential
-          */
+            + a number given by application of this function recursively to differential
+        --
+        this solution is written in tail recursive style using the accumulator
+        */
         if Self::is_zero_series(&series) {
             acc
         } else {
