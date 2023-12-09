@@ -28,7 +28,7 @@ pub enum Mode {
 }
 
 fn main() {
-    let day = 8;
+    let day = 9;
     let mode = Mode::Real;
     let answer_1 = get_solution(day, Part::One, mode);
     let answer_2 = get_solution(day, Part::Two, mode);
