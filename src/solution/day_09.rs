@@ -2,6 +2,7 @@ use regex::Regex;
 
 type Number = i64;
 type Series = Vec<Number>;
+enum DiffDirection {Forward, Backward}
 
 type Report = Vec<Series>;
 type P = Report;
@@ -34,12 +35,15 @@ impl DaySolution {
         series[0]
     }
     // differentiate
-    fn diff_series(series: &Series) -> Series {
+    fn diff_series(series: &Series, diff_direction: DiffDirection) -> Series {
         series
             .iter()
             .skip(1)
             .zip(series.iter())
-            .map(|(n2, n1)| n2 - n1)
+            .map(|(n2, n1)| match diff_direction {
+                DiffDirection::Forward  => n2 - n1,
+                DiffDirection::Backward => n1 - n2,
+            })
             .collect()
     }
     // find next number in series
@@ -55,7 +59,7 @@ impl DaySolution {
             acc
         } else {
             let last = Self::series_last_num(&series);
-            let diff = Self::diff_series(&series);
+            let diff = Self::diff_series(&series, DiffDirection::Forward);
             Self::find_next_number(acc + last, &diff)
         }
     }
@@ -65,8 +69,8 @@ impl DaySolution {
             acc
         } else {
             let head = Self::series_head_num(&series);
-            let diff = Self::diff_series(&series);
-            head - Self::find_prev_number(acc, &diff)
+            let diff = Self::diff_series(&series, DiffDirection::Backward);
+            Self::find_prev_number(acc + head, &diff)
         }
     }
 }
@@ -117,6 +121,8 @@ impl super::Solution for DaySolution {
 
 #[cfg(test)]
 mod tests {
+    use crate::solution::day_09::DiffDirection as DD;
+
     use super::DaySolution as DS;
     #[test]
     fn parse_one_line() {
@@ -127,12 +133,12 @@ mod tests {
     #[test]
     fn diff_series() {
         assert_eq!(
-            DS::diff_series(&vec![10, 13, 16, 21, 30, 45]),
+            DS::diff_series(&vec![10, 13, 16, 21, 30, 45], DD::Forward),
             vec![3, 3, 5, 9, 15]
         );
-        assert_eq!(DS::diff_series(&vec![3, 3, 5, 9, 15]), vec![0, 2, 4, 6]);
-        assert_eq!(DS::diff_series(&vec![0, 2, 4, 6]), vec![2, 2, 2]);
-        assert_eq!(DS::diff_series(&vec![2, 2, 2]), vec![0, 0]);
+        assert_eq!(DS::diff_series(&vec![3, 3, 5, 9, 15], DD::Forward), vec![0, 2, 4, 6]);
+        assert_eq!(DS::diff_series(&vec![0, 2, 4, 6], DD::Forward), vec![2, 2, 2]);
+        assert_eq!(DS::diff_series(&vec![2, 2, 2], DD::Forward), vec![0, 0]);
     }
 
     #[test]
