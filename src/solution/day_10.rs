@@ -1,6 +1,31 @@
 type P = ();
 
+struct Position{r: usize, c: usize}
+enum Segment {NS, EW, NE, NW, SW, SE, S, O}
+enum Direction {N, E, S, W}
+struct State {pos: Position, dir: Direction}
+type Map = Vec<Vec<Segment>>;
 pub struct DaySolution(P);
+
+impl DaySolution {
+    fn parse_byte(b: Byte) -> Segment {
+        match b {
+            b'|' => NS,
+            b'-' => EW,
+            b'L' => NE,
+            b'J' => NW,
+            b'F' => SE,
+            b'7' => SW,
+            b'.' => O,
+            b'S' => S,
+            _ => panic!("could't parse '{}'", b.make_ascii_uppercase()),
+        }
+    }
+    fn locate_start() -> Position {
+        unimplemented!()
+    }
+  //fn move()
+}
 
 impl super::Solution for DaySolution {
 
