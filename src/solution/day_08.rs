@@ -34,7 +34,7 @@ impl Day {
             .collect()
     }
     fn parse_network(text_input: &str) -> Network {
-        let text_input = text_input.clone();
+        let text_input = text_input;
         Regex::new(r#"([\d\w]{3}) = \(([\d\w]{3}), ([\d\w]{3})\)"#)
             .unwrap()
             .captures_iter(text_input)
