@@ -3,7 +3,7 @@ struct Location {
     r: usize,
     c: usize,
 }
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum Segment {
     NS,
     EW,
@@ -200,20 +200,37 @@ impl super::Solution for DaySolution {
             .map(|(ir, r)| {
                 r.iter()
                     .enumerate()
-                    .fold((0_usize, 0_usize), |(crosses, acc), (ic, s)| {
+                    .fold((0_usize, 0_usize, &None), |(crosses, acc, prev_boarder), (ic, s)| {
                         if loop_lcns.contains(&Location { r: ir, c: ic }) {
-                            match s {
-                                Segment::NS => (crosses + 1, acc),
-                                _ => (crosses, acc),
+                            match (prev_boarder, s) {
+                                // just a | - then it is definitely a cross
+                                (None, Segment::NS) => (crosses + 1, acc, &None),
+                                // horizontal line - still to be decided because it can be a cross or close out
+                                // here and below: in test case and real case S is similar to F-shaped corner
+                                (Some(Segment::NE), Segment::EW)
+                                | (Some(Segment::SE), Segment::EW)
+                                | (Some(Segment::S ), Segment::EW) => (crosses, acc, prev_boarder),
+                                //'┌┐', '└┘', '┌─┐', '└─┘' are not crosses
+                                (Some(Segment::NE), Segment::NW)
+                                | (Some(Segment::SE), Segment::SW)
+                                | (Some(Segment::S ), Segment::SW) => (crosses, acc, &None),
+                                // '┌┘', '┌┘', '└─┐', '└─┐' are crosses
+                                (Some(Segment::NE), Segment::SW)
+                                | (Some(Segment::SE), Segment::NW)
+                                | (Some(Segment::S ), Segment::NW) => (crosses + 1, acc, &None),
+                                (None, Segment::NE) => (crosses, acc, &Some(Segment::NE)),
+                                (None, Segment::SE)
+                                | (None, Segment::S ) => (crosses, acc, &Some(Segment::SE)),
+                                _ => (crosses, acc, prev_boarder),
                             }
                         } else if crosses % 2 == 1 {
-                            (crosses, acc + 1)
+                            (crosses, acc + 1, &None)
                         } else {
-                            (crosses, acc)
+                            (crosses, acc, prev_boarder)
                         }
                     })
             })
-            .map(|(_, acc)| acc)
+            .map(|(_, acc, _)| acc)
             .sum();
         /*
         // now we will print the map and count inner elements manually
