@@ -23,8 +23,11 @@ pub trait Solution {
         fs::read_to_string(path).expect("Couldn't read file")
     }
 
-    fn run(part: super::Part, mode: super::Mode) -> String {
-        let input = Self::load_file_input(mode);
+    fn run(part: super::Part, mode: super::Mode, stdin: &Option<String>) -> String {
+        let input = match stdin {
+            Some(data) => data.clone(),
+            _ => Self::load_file_input(mode)
+        };
         let problem = match part {
             super::Part::One => Self::parse_input_part_1(input),
             super::Part::Two => Self::parse_input_part_2(input),
