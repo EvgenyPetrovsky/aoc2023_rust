@@ -5,14 +5,6 @@ const S_W: u8 = b'.';
 const S_B: u8 = b'#';
 const S_U: u8 = b'?';
 
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-enum S {
-    W,
-    B,
-    U,
-}
-
 type Springs = Vec<u8>;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -60,109 +52,6 @@ impl DaySolution {
         Self::parse_one_line(&(vec![s5, b5].join(" ")))
     }
 
-    /*
-        fn fast_permutations(broken: usize, total: usize) -> Vec<Springs> {
-            fn iter_fun(broken: usize, total: usize) -> Vec<Springs> {
-                if total > 0 {
-                    let mut v1: Vec<Springs> = vec![vec![]];
-                    let mut v2: Vec<Springs> = vec![vec![]];
-                    if broken > 0 {
-                        v1 = iter_fun(broken - 1, total - 1);
-                        for idx in 0..v1.len() {
-                            v1[idx].push(S_B);
-                        }
-                    } else {
-                        v1.clear();
-                    };
-                    if total - broken > 0 {
-                        v2 = iter_fun(broken, total - 1);
-                        for idx in 0..v2.len() {
-                            v2[idx].push(S_W);
-                        }
-                    } else {
-                        v2.clear()
-                    }
-                    let v: Vec<Springs> =
-                        v1.iter().chain(v2.iter()).map(|v| v.clone()).collect();
-                    v
-                } else {
-                    vec![vec![]]
-                }
-            }
-            let result = iter_fun(broken, total);
-            //result.iter().for_each(|v| println!("Broken {:>2}, Total {:>2}: {:?}", broken, total, v));
-            result
-        }
-
-        fn enumerate_unknowns(springs: &Springs) -> Vec<Option<usize>> {
-            springs
-                .iter()
-                .map(|&s| s == S_U)
-                .scan((None::<Option<S>>, 0_usize), |(_, n), x| {
-                    if x {
-                        *n += 1;
-                        Some((Some(*n - 1), *n))
-                    } else {
-                        Some((None, *n))
-                    }
-                })
-                .map(|(x, _)| x)
-                .collect()
-        }
-
-        fn substitute_unknowns(
-            springs: &Springs,
-            replacement_springs: &Springs,
-        ) -> Springs {
-            let idx_unknowns = Self::enumerate_unknowns(springs);
-            springs
-                .iter()
-                .enumerate()
-                .map(|(idx, s)| match s {
-                    S_U => replacement_springs[idx_unknowns[idx].unwrap()],
-                    _ => *s,
-                })
-                .collect()
-        }
-
-        fn generate_brokens_regexp(record: &Record) -> String {
-            record
-                .brokens
-                .iter()
-                .map(|&x| format!("{:B<1$}", "", x))
-                .collect::<Vec<String>>()
-                .join("W+")
-        }
-
-        fn process_one_record_old(record: &Record) -> usize {
-            let springs = &(record.springs);
-            let unknown_count: usize = springs
-                .iter()
-                .filter(|&&s| s == S_U)
-                .count();
-            let known_broken_count: usize = springs
-                .iter()
-                .filter(|&&s| s == S_B)
-                .count();
-            let total_broken_count: usize = record.brokens.iter().sum();
-            //println!("total_broken_count {}, known_broken_count: {}, unknown_count: {}", total_broken_count, known_broken_count, unknown_count);
-            let replacements =
-                Self::fast_permutations(total_broken_count - known_broken_count, unknown_count);
-
-            let brokens_as_regex_str = Self::generate_brokens_regexp(record);
-            let re = Regex::new(brokens_as_regex_str.as_str()).unwrap();
-            replacements
-                .iter()
-                .map(|replacement_springs| Self::substitute_unknowns(&springs, replacement_springs))
-                .map(|v| {
-                    v.iter()
-                        .map(|&s| if s == S_B { 'B' } else { 'W' })
-                        .collect::<String>()
-                })
-                .filter(|s| re.is_match(s))
-                .count()
-        }
-    */
     // use all reversed values to easier reason about the end (0)
     fn rev_calculate(
         springs: &Springs,
@@ -185,7 +74,8 @@ impl DaySolution {
         if pos == 0 && idx == 0 && rem == 1 && (spr_at_pos == S_B || spr_at_pos == S_U) {
             //if debug {println!("pos == 0 && idx == 0 && rem == 1 && (spr_at_pos == S_B || spr_at_pos == S_U)")};
             1
-        } else if pos == 0 && idx == 0 && rem == 0 && (spr_at_pos == S_W || spr_at_pos == S_U) {
+        }
+        else if pos == 0 && idx == 0 && rem == 0 && (spr_at_pos == S_W || spr_at_pos == S_U) {
             //if debug {println!("pos == 0 && idx == 0 && rem == 0 && (spr_at_pos == S_W || spr_at_pos == S_U)")};
             1
         }
@@ -300,8 +190,8 @@ impl super::Solution for DaySolution {
             .iter()
             .enumerate()
             .map(|(idx, record)| {
-                if idx % 50 == 0 {
-                println!("processing part 1, record {:>3}", idx);
+                if (idx+1) % 50 == 0 {
+                println!("processing part 1, record {:>3}", idx+1);
                 };
                 DaySolution::process_one_record(record)
             })
@@ -315,8 +205,8 @@ impl super::Solution for DaySolution {
             .enumerate()
             .map(|(idx, record)| {
                 let v = DaySolution::process_one_record(record);
-                if idx % 1 == 0 {
-                println!("processing part 2, record: {:>3}, count: {:>13}", idx, v);
+                if (idx+1) % 1 == 0 {
+                println!("processing part 2, record: {:>3}, count: {:>13}", idx+1, v);
                 };
                 v
             })
