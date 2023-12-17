@@ -1,4 +1,3 @@
-use itertools::{repeat_n, Itertools};
 use regex::Regex;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
@@ -12,6 +11,20 @@ pub struct Record {
     springs: Vec<SpringState>,
     brokens: Vec<usize>,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum S {
+    W,
+    B,
+    U,
+}
+
+type Springs = Vec<S>;
+struct Record {
+    springs: Vec<S>,
+    record: Vec<u8>,
+}
+
 type P = Vec<Record>;
 
 pub struct DaySolution(P);
@@ -161,6 +174,58 @@ impl DaySolution {
             .filter(|s| re.is_match(s))
             .count()
     }
+
+    // use all reversed values to easier reason about the end (0)
+    fn rev_calculate(
+        rev_springs: &Springs,
+        rev_records: &Vec<u8>,
+        rev_pos: usize,
+        rev_rec_idx: usize,
+        rem_brk: u8,
+    ) -> usize {
+        let (spr, pos, rec, idx, rem) = (rev_springs, rev_pos, rev_records, rev_rec_idx, rem_brk);
+
+        //if remaining broken springs = 0 and rev_rec_idx = 0 and we reached the end of springs, then = 1
+        if pos == 0 && idx == 0 && rem == 1 && (spr[pos] == S::B || spr[pos] == S::U) {
+            1
+        } else if pos == 0 && idx == 0 && rem == 0 && (spr[pos] == S::W || spr[pos] == S::U) {
+            1
+        }
+        //if remaining broken springs > 0 and re reached end of springs
+        else if pos == 0 && (idx > 0 || rem > 0) {
+            0
+        }
+        //if remaining broken springs = 0 and we find B-spring, then = 0
+        else if rem == 0 && spr[pos] == S::B {
+            0
+        }
+        //if remaining broken springs > 0 and we find W-spring, then = 0
+        else if rem > 0 && spr[pos] == S::W {
+            0
+        }
+        //if remaining broken springs > 0 and we find broken or unknown spring then continue
+        else if pos > 0 && rem > 0 && (spr[pos] == S::B || spr[pos] == S::U) {
+            Self::rev_calculate(spr, rec, pos - 1, idx, rem - 1)
+        }
+        //if remaining broken springs = 0 and rev_rec_idx = 0 and we didn't reach the end of spings, then
+        //    - move on to next spring and search for brokens
+        //    - move on to next spring and postpone search
+        else if pos > 0 && idx > 0 && rem == 0 && (spr[pos] == S::W || spr[pos] == S::U) {
+            Self::rev_calculate(spr, rec, pos - 1, idx, rem)
+                + Self::rev_calculate(spr, rec, pos - 1, idx - 1, rec[idx - 1])
+        }
+        // if remaining broken springs = 0 and we find working or unknown spring then continue
+        else if pos > 0 && idx == 0 && rem == 0 && (spr[pos] == S::W || spr[pos] == S::U) {
+            Self::rev_calculate(spr, rec, pos - 1, idx, rem)
+        } else {
+            panic!(
+                "rev_pos: {pos}, rev_rec_idx {idx}, rem_brk: {rem}, pos_val: {:?}",
+                spr[pos]
+            )
+        }
+    }
+
+
 }
 
 impl super::Solution for DaySolution {
