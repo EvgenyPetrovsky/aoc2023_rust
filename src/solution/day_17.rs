@@ -1,31 +1,32 @@
 use std::collections::HashMap;
 
-use clap::builder::styling::Ansi256Color;
+type Dir = u8;
+
+const DIR_N: u8 = b'N';
+const DIR_E: u8 = b'E';
+const DIR_S: u8 = b'S';
+const DIR_W: u8 = b'W';
+
+const STRAIGHT_LIMIT: u8 = 3;
+const ALL_DIRECTIONS: [Dir; 4] = [DIR_N, DIR_E, DIR_S, DIR_W];
 
 type HeatLoss = u32;
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-enum Dir {
-    N,
-    E,
-    S,
-    W,
-}
 
-type Location = (i32, i32);
-#[derive(Debug)]
+type Location = (u8, u8);
+#[derive(Debug, Clone)]
 struct Position {
     loc: Location,
     dir: Dir,
-    cnt: u32,
+    cnt: u8,
     acc_heat_loss: u32,
     path: Path,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 struct MemKey {
     loc: Location,
     dir: Dir,
-    cnt: u32,
+    cnt: u8,
 }
 
 type Path = Vec<Location>;
@@ -34,8 +35,6 @@ type Memory = HashMap<MemKey, (HeatLoss, Path)>;
 type CityMap = Vec<Vec<HeatLoss>>;
 type P = CityMap;
 
-const STRAIGHT_LIMIT: u32 = 3;
-const ALL_DIRECTIONS: [Dir; 4] = [Dir::N, Dir::E, Dir::S, Dir::W];
 
 pub struct DaySolution(P);
 
@@ -44,66 +43,68 @@ impl DaySolution {
         line.chars().map(|c| c.to_digit(10).unwrap()).collect()
     }
 
-    fn is_opposite_direction(d1: &Dir, d2: &Dir) -> bool {
+    fn is_opposite_direction(d1: Dir, d2: Dir) -> bool {
         match (d1, d2) {
-            (Dir::S, Dir::N) | (Dir::N, Dir::S) => true,
-            (Dir::W, Dir::E) | (Dir::E, Dir::W) => true,
+            (DIR_S, DIR_N) | (DIR_N, DIR_S) => true,
+            (DIR_W, DIR_E) | (DIR_E, DIR_W) => true,
             _ => false,
         }
     }
 
-    fn is_valid_direction(dir: &Dir, for_pos: &Position, on_map: &CityMap) -> bool {
+    // check that location will still be within map boundaries after move is done
+    fn within_boundaries(dir: Dir, for_pos: &Position, on_map: &CityMap) -> bool {
         let (r, c) = for_pos.loc;
         let (rows, cols) = Self::map_size(on_map);
         // the constraints are stricter by 1 move
         match dir {
-            Dir::N => r > 0,
-            Dir::E => c < cols - 1,
-            Dir::S => r < rows - 1,
-            Dir::W => c > 0,
+            DIR_N => r > 0,
+            DIR_E => c < cols - 1,
+            DIR_S => r < rows - 1,
+            DIR_W => c > 0,
+            _ => unreachable!(),
         }
     }
-    fn make_one_move(pos: &Position, dir: &Dir, on_map: &CityMap) -> Position {
+
+    // given position and direction, make one move and update position
+    fn make_one_move(pos: &Position, dir: Dir, on_map: &CityMap) -> Position {
         let (r, c) = pos.loc;
-        let cnt = if &pos.dir == dir { pos.cnt + 1 } else { 1 };
+        let cnt = if pos.dir == dir { pos.cnt + 1 } else { 1 };
         let loc = match dir {
-            Dir::N => (r - 1, c + 0),
-            Dir::E => (r + 0, c + 1),
-            Dir::S => (r + 1, c + 0),
-            Dir::W => (r + 0, c - 1),
+            DIR_N => (r - 1, c + 0),
+            DIR_E => (r + 0, c + 1),
+            DIR_S => (r + 1, c + 0),
+            DIR_W => (r + 0, c - 1),
+            _ => unreachable!(),
         };
         let acc_heat_loss = pos.acc_heat_loss + on_map[loc.0 as usize][loc.1 as usize];
         let mut path = pos.path.clone();
         path.push(loc);
         Position {
             loc,
-            dir: dir.clone(),
+            dir: dir,
             cnt,
             acc_heat_loss,
             path,
         }
     }
 
-    fn map_size(map: &CityMap) -> (i32, i32) {
-        let r = map.len() as i32;
-        let c: i32 = if r == 0 { 0 } else { map[0].len() as i32 };
+    fn map_size(map: &CityMap) -> (u8, u8) {
+        let r = map.len() as u8;
+        let c: u8 = if r == 0 { 0 } else { map[0].len() as u8 };
         (r, c)
     }
 
     fn find_possible_moves(pos: &Position, on_map: &CityMap, mem: &Memory) -> Vec<Position> {
-        let (rows, cols) = Self::map_size(on_map);
-        //let m = HashMap::
         ALL_DIRECTIONS
             .iter()
-            .filter(|&dir| DaySolution::is_valid_direction(dir, pos, on_map))
-            .filter(|&d2| !Self::is_opposite_direction(&pos.dir, d2))
-            .map(|dir| Self::make_one_move(pos, dir, on_map))
-            .filter(|p| 0 <= p.loc.0 && p.loc.0 < rows && 0 <= p.loc.1 && p.loc.1 < cols)
+            .filter(|&d2| !Self::is_opposite_direction(pos.dir, *d2))
+            .filter(|&dir| DaySolution::within_boundaries(*dir, pos, on_map))
+            .map(|dir| Self::make_one_move(pos, *dir, on_map))
             .filter(|p| p.cnt <= STRAIGHT_LIMIT)
             .filter(|p| {
                 let key = MemKey {
                     loc: p.loc,
-                    dir: p.dir.clone(),
+                    dir: p.dir,
                     cnt: p.cnt,
                 };
                 if let Some((_, (least_loss, _))) = mem.get_key_value(&key) {
@@ -116,25 +117,55 @@ impl DaySolution {
     }
 
     fn iterate(new_pos: &Vec<Position>, on_map: &CityMap, memory: &Memory) -> Memory {
+        // if all possible conditions were checked
         if new_pos.len() == 0 {
             memory.clone()
         } else {
+            let mut mem = memory.clone();
             let old_pos = new_pos;
-            let new_pos: Vec<Position> = old_pos
+            let new_pos: Vec<Position> =
+                old_pos
                 .iter()
                 .flat_map(|pos| Self::find_possible_moves(pos, on_map, memory))
                 .collect();
-
-            let mut mem = memory.clone();
             new_pos.iter().for_each(|pos| {
                 let key = MemKey {
                     loc: pos.loc,
-                    dir: pos.dir.clone(),
+                    dir: pos.dir,
                     cnt: pos.cnt,
                 };
-                mem.insert(key, (pos.acc_heat_loss, pos.path.clone()));
+                if let Some((_, v)) = mem.get_key_value(&key) {
+                    if v.0 > pos.acc_heat_loss {
+                        //mem.insert(key, (pos.acc_heat_loss, pos.path.clone()));
+                        mem.insert(key, (pos.acc_heat_loss, vec![(0_u8,0_u8)]));
+                    }
+                } else {
+                    //mem.insert(key, (pos.acc_heat_loss, pos.path.clone()));
+                    mem.insert(key, (pos.acc_heat_loss, vec![(0_u8,0_u8)]));
+                }
             });
-
+            //prune positions further and drop all those which have worse parameters than in memory
+            let mut new_pos: Vec<Position> =
+                new_pos
+                //.clone()
+                .into_iter()
+                .filter(|p| {
+                    let key = MemKey {
+                        loc: p.loc,
+                        dir: p.dir,
+                        cnt: p.cnt,
+                    };
+                    if let Some((least, _)) = mem.get(&key) {
+                        *least == p.acc_heat_loss
+                    } else {
+                        false
+                    }
+                })
+                .collect();
+            new_pos.sort_by_key(|a| (a.loc, a.dir, a.cnt));
+            new_pos.dedup_by_key(|a| MemKey {cnt: a.cnt, loc: a.loc, dir: a.dir});
+            println!("map size: {:>6}, number of new positions: {:>8}", mem.len(), new_pos.len());
+            //new_pos.iter().for_each(|p| { println!("Position: {:?}", p) });
             Self::iterate(&new_pos, on_map, &mem)
         }
     }
@@ -160,22 +191,24 @@ impl super::Solution for DaySolution {
     fn solve_part_1(problem: Self::Problem) -> Self::Answer {
         let init_mem: Memory = HashMap::new();
         let map_size = DaySolution::map_size(&problem);
-        let heat_loss_at_start = problem[0][0];
+        //let heat_loss_at_start = problem[0][0];
         let new_pos = vec![
             Position {
                 loc: (0, 0),
-                dir: Dir::E,
-                cnt: 1,
-                acc_heat_loss: heat_loss_at_start,
-                path: vec![(0, 0)],
+                dir: DIR_E,
+                cnt: 0,
+                acc_heat_loss: 0,
+                path: vec![],
             },
+            /*
             Position {
                 loc: (0, 0),
-                dir: Dir::S,
+                dir: DIR_S,
                 cnt: 1,
                 acc_heat_loss: heat_loss_at_start,
                 path: vec![(0, 0)],
             },
+            */
         ];
         let memory = DaySolution::iterate(&new_pos, &problem, &init_mem);
 
