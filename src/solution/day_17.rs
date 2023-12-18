@@ -77,8 +77,9 @@ impl DaySolution {
             _ => unreachable!(),
         };
         let acc_heat_loss = pos.acc_heat_loss + on_map[loc.0 as usize][loc.1 as usize];
-        let mut path = pos.path.clone();
-        path.push(loc);
+        //let mut path = pos.path.clone();
+        //path.push(loc);
+        let path = pos.path.clone();
         Position {
             loc,
             dir: dir,
@@ -136,12 +137,10 @@ impl DaySolution {
                 };
                 if let Some((_, v)) = mem.get_key_value(&key) {
                     if v.0 > pos.acc_heat_loss {
-                        //mem.insert(key, (pos.acc_heat_loss, pos.path.clone()));
-                        mem.insert(key, (pos.acc_heat_loss, vec![(0_u8,0_u8)]));
+                        mem.insert(key, (pos.acc_heat_loss, pos.path.clone()));
                     }
                 } else {
-                    //mem.insert(key, (pos.acc_heat_loss, pos.path.clone()));
-                    mem.insert(key, (pos.acc_heat_loss, vec![(0_u8,0_u8)]));
+                    mem.insert(key, (pos.acc_heat_loss, pos.path.clone()));
                 }
             });
             //prune positions further and drop all those which have worse parameters than in memory
