@@ -7,7 +7,8 @@ const DIR_E: u8 = b'E';
 const DIR_S: u8 = b'S';
 const DIR_W: u8 = b'W';
 
-const STRAIGHT_LIMIT: u8 = 3;
+const STRAIGHT_MIN: u8 = 4;
+const STRAIGHT_MAX: u8 = 10;
 const ALL_DIRECTIONS: [Dir; 4] = [DIR_N, DIR_E, DIR_S, DIR_W];
 
 type HeatLoss = u32;
@@ -19,7 +20,6 @@ struct Position {
     dir: Dir,
     cnt: u8,
     acc_heat_loss: u32,
-    path: Path,
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -29,8 +29,8 @@ struct MemKey {
     cnt: u8,
 }
 
-type Path = Vec<Location>;
-type Memory = HashMap<MemKey, (HeatLoss, Path)>;
+//type Path = Vec<Location>;
+type Memory = HashMap<MemKey, HeatLoss>;
 
 type CityMap = Vec<Vec<HeatLoss>>;
 type P = CityMap;
@@ -77,15 +77,11 @@ impl DaySolution {
             _ => unreachable!(),
         };
         let acc_heat_loss = pos.acc_heat_loss + on_map[loc.0 as usize][loc.1 as usize];
-        //let mut path = pos.path.clone();
-        //path.push(loc);
-        let path = pos.path.clone();
         Position {
             loc,
             dir: dir,
             cnt,
             acc_heat_loss,
-            path,
         }
     }
 
@@ -101,14 +97,14 @@ impl DaySolution {
             .filter(|&d2| !Self::is_opposite_direction(pos.dir, *d2))
             .filter(|&dir| DaySolution::within_boundaries(*dir, pos, on_map))
             .map(|dir| Self::make_one_move(pos, *dir, on_map))
-            .filter(|p| p.cnt <= STRAIGHT_LIMIT)
+            .filter(|p| p.cnt <= STRAIGHT_MAX && (p.dir == pos.dir || pos.cnt >= STRAIGHT_MIN))
             .filter(|p| {
                 let key = MemKey {
                     loc: p.loc,
                     dir: p.dir,
                     cnt: p.cnt,
                 };
-                if let Some((_, (least_loss, _))) = mem.get_key_value(&key) {
+                if let Some((_, least_loss)) = mem.get_key_value(&key) {
                     least_loss > &p.acc_heat_loss
                 } else {
                     true
@@ -135,12 +131,12 @@ impl DaySolution {
                     dir: pos.dir,
                     cnt: pos.cnt,
                 };
-                if let Some((_, v)) = mem.get_key_value(&key) {
-                    if v.0 > pos.acc_heat_loss {
-                        mem.insert(key, (pos.acc_heat_loss, pos.path.clone()));
+                if let Some(v) = mem.get(&key) {
+                    if *v > pos.acc_heat_loss {
+                        mem.insert(key, pos.acc_heat_loss);
                     }
                 } else {
-                    mem.insert(key, (pos.acc_heat_loss, pos.path.clone()));
+                    mem.insert(key, pos.acc_heat_loss);
                 }
             });
             //prune positions further and drop all those which have worse parameters than in memory
@@ -154,7 +150,7 @@ impl DaySolution {
                         dir: p.dir,
                         cnt: p.cnt,
                     };
-                    if let Some((least, _)) = mem.get(&key) {
+                    if let Some(least) = mem.get(&key) {
                         *least == p.acc_heat_loss
                     } else {
                         false
@@ -197,7 +193,6 @@ impl super::Solution for DaySolution {
                 dir: DIR_E,
                 cnt: 0,
                 acc_heat_loss: 0,
-                path: vec![],
             },
             /*
             Position {
@@ -211,23 +206,23 @@ impl super::Solution for DaySolution {
         ];
         let memory = DaySolution::iterate(&new_pos, &problem, &init_mem);
 
-        let best: (u32, Vec<Location>) =
+        let best: u32 =
             memory
             .iter()
             .filter(|(k, _)| (k.loc.0 + 1, k.loc.1 + 1) == map_size)
+            .filter(|(k, _)| k.cnt >= STRAIGHT_MIN)
             .map(|(_, v)| v)
-            .fold((999999999_u32, vec![]), |best, this| {
-                if this.0 < best.0 { this.clone() } else { best }
+            .fold(u32::MAX, |best, this| {
+                if *this < best { *this } else { best }
             });
 
-        let debug = true;
-
-        if debug {println!("Optimal path: {:?}", &best.1)}
-        let answer = best.0;
+        let answer = best;
         Some(answer)
     }
 
     fn solve_part_2(_problem: Self::Problem) -> Self::Answer {
+        // same but with different constants STRAIGHT_MIN & STRAIGHT_MAX
+        //Self::solve_part_1(_problem)
         None
     }
 
