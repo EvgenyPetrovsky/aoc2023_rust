@@ -59,8 +59,9 @@ impl DaySolution {
         pos: usize,
         brk_idx: usize,
         rem_brk: usize,
+        min_req_len: usize
     ) -> usize {
-        let (spr, pos, brk, idx, rem) = (springs, pos, brokens, brk_idx, rem_brk);
+        let (spr, pos, brk, idx, rem, req) = (springs, pos, brokens, brk_idx, rem_brk, min_req_len);
         let init_brk = brk[idx];
         //let debug = false;
         let spr_at_pos = spr[pos];
@@ -71,7 +72,10 @@ impl DaySolution {
         //let must_be_broken = rem > 0 || rem < init_brk;
         //let must_go_on = pos > 0;
 
-        if pos == 0 && idx == 0 && rem == 1 && (spr_at_pos == S_B || spr_at_pos == S_U) {
+        if pos + 1 < req {
+            0
+        }
+        else if pos == 0 && idx == 0 && rem == 1 && (spr_at_pos == S_B || spr_at_pos == S_U) {
             //if debug {println!("pos == 0 && idx == 0 && rem == 1 && (spr_at_pos == S_B || spr_at_pos == S_U)")};
             1
         }
@@ -97,19 +101,19 @@ impl DaySolution {
         //    - move on to next spring and postpone search
         else if rem == init_brk && spr_at_pos == S_U {
             //if debug {println!("rem > 0 && rem == init_brk && spr_at_pos == S_U")};
-            Self::rev_calculate(spr, brk, pos - 1, idx, rem - 1)
-            + Self::rev_calculate(spr, brk, pos - 1, idx, rem)
+            Self::rev_calculate(spr, brk, pos - 1, idx, rem - 1, req - 1)
+            + Self::rev_calculate(spr, brk, pos - 1, idx, rem, req)
         }
         //if remaining broken springs > 0 and we find W-spring, then = 0
         else if rem == init_brk && spr_at_pos == S_W {
             //if debug {println!("rem > 0 && rem == init_brk && spr_at_pos == S_W")};
-            Self::rev_calculate(spr, brk, pos - 1, idx, rem)
+            Self::rev_calculate(spr, brk, pos - 1, idx, rem, req)
         }
         //if remaining broken springs > 0 and we find B-spring, then
         //    - move on
         else if rem == init_brk && spr_at_pos == S_B {
             //if debug {println!("rem > 0 && rem == init_brk && spr_at_pos == S_B")};
-            Self::rev_calculate(spr, brk, pos - 1, idx, rem - 1)
+            Self::rev_calculate(spr, brk, pos - 1, idx, rem - 1, req-1)
         }
         else if rem == init_brk {
             panic!("non handled rem == init_brk condition")
@@ -123,12 +127,12 @@ impl DaySolution {
         //    - move on by decreasing idx and
         else if rem == 0 && idx >  0 && (spr_at_pos == S_W || spr_at_pos == S_U) {
             //if debug {println!("rem == 0 && idx >  0 && ( spr_at_pos == S_W || spr_at_pos == S_U )")};
-            Self::rev_calculate(spr, brk, pos - 1, idx - 1, brk[idx-1])
+            Self::rev_calculate(spr, brk, pos - 1, idx - 1, brk[idx-1], req - 1)
         }
         // if remaining broken = 0 and no indexes and current spring is W or U, move on to next
         else if rem == 0 && idx == 0 && (spr_at_pos == S_W || spr_at_pos == S_U) {
             //if debug {println!("rem == 0 && idx == 0 && (spr_at_pos == S_W || spr_at_pos == S_U)")};
-            Self::rev_calculate(spr, brk, pos - 1, idx, rem)
+            Self::rev_calculate(spr, brk, pos - 1, idx, rem, req)
         }
         else if rem == 0 {
             panic!("non handled rem == 0 condition")
@@ -141,7 +145,7 @@ impl DaySolution {
         //if remaining broken springs > 0 and we find broken or unknown spring then continue
         else if rem > 0 && (spr_at_pos == S_B || spr_at_pos == S_U) {
             //if debug {println!("pos > 0 && rem > 0 && rem != init_brk && (spr_at_pos == S_B || spr_at_pos == S_U)")};
-            Self::rev_calculate(spr, brk, pos - 1, idx, rem - 1)
+            Self::rev_calculate(spr, brk, pos - 1, idx, rem - 1, req - 1)
         }
         else if rem > 0 {
             panic!("non handled rem > 0 condition")
@@ -159,8 +163,10 @@ impl DaySolution {
         let init_brk_idx = record.brokens.len() - 1;
         let rem_brk = record.brokens[init_brk_idx];
 
+        // minimum required len for all broken springs and spaces between
+        let min_req_len: usize = record.brokens.iter().fold(0_usize, |z, x| z + x) + init_brk_idx;
         //Self::rev_calculate(&rev_springs, &rev_brokens, init_pos, init_brk_idx, rem_brk)
-        Self::rev_calculate(&record.springs, &record.brokens, init_pos, init_brk_idx, rem_brk)
+        Self::rev_calculate(&record.springs, &record.brokens, init_pos, init_brk_idx, rem_brk, min_req_len)
     }
 }
 
@@ -206,7 +212,7 @@ impl super::Solution for DaySolution {
             .map(|(idx, record)| {
                 let v = DaySolution::process_one_record(record);
                 if (idx+1) % 1 == 0 {
-                println!("processing part 2, record: {:>3}, count: {:>13}", idx+1, v);
+                println!("processing part 2, record: {:>4}, count: {:>13}", idx+1, v);
                 };
                 v
             })
