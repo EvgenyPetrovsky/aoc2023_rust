@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use regex::Regex;
 
+#[derive(Debug, Clone)]
 pub struct Part {x: u32, m: u32, a: u32, s: u32}
 
 #[derive(Debug, Clone)]
@@ -19,7 +20,6 @@ enum Decision { Accept, Reject, SendTo (String) }
 enum Comparison { Lt, Gt }
 
 pub struct P {
-    start: String,
     flows: HashMap<String, Workflow>,
     parts: Vec<Part>
 }
@@ -51,27 +51,23 @@ impl DaySolution {
                     };
                     Some(c)
                 },
-                None => None
-            })
-            .unwrap();
+                _ => None
+            });
         let decision =
             re_decision
             .captures(line)
-            .map(|c| { match c.get(0) {
+            .map(|c| match c.get(0) {
                 Some(_) => {
                     let (_, [dec]) = c.extract();
                     Some(match_decision(dec))
                 },
-                None => None
-
-            }
-            })
-            .unwrap();
+                _ => None
+            });
 
         if condition.is_some() {
-            Rule::Condition(condition.unwrap())
+            Rule::Condition(condition.unwrap().unwrap())
         } else {
-            Rule::Decision(decision.unwrap())
+            Rule::Decision(decision.unwrap().unwrap())
         }
 
     }
@@ -86,7 +82,7 @@ impl DaySolution {
         .unwrap();
         let rules =
             rules_re.captures_iter(rules_str).map(|c| {
-                let (rule, [_]) = c.extract();
+                let rule = c.get(0).unwrap().as_str();
                 Self::parse_one_rule(rule)
             })
             .collect::<Vec<Rule>>();
@@ -137,15 +133,17 @@ impl DaySolution {
                         None => new_decision,
                     }
             });
+
+        /*println!(
+            "Classify part {:?} with workflow {:?}, decision = {:?}",
+            part, flows.get(flow), &opt_decision);*/
+
         match opt_decision {
             Some(Decision::SendTo(new_flow)) => Self::classify_one_part(part, &new_flow, flows),
             Some(Decision::Accept) => Decision::Accept,
             Some(Decision::Reject) => Decision::Reject,
             None => Decision::Accept,
-
         }
-
-
     }
 
 }
@@ -156,7 +154,7 @@ impl super::Solution for DaySolution {
 
     const DAY_NUMBER: u8 = 19;
 
-    type Answer = Option<usize>;
+    type Answer = Option<u32>;
     type Problem = P;
 
     fn parse_input_part_1(text_input: String) -> Self::Problem {
@@ -173,17 +171,7 @@ impl super::Solution for DaySolution {
             .map(|wfw| (wfw.name.clone(), wfw))
             .collect()
             ;
-        let start = flows_str.
-            lines().
-            take(1).
-            map(|line| {
-                let one_flow = DaySolution::parse_one_workflow(line);
-                one_flow.name
-            })
-            .nth(0)
-            .unwrap()
-            ;
-        P { start, flows, parts }
+        P { flows, parts }
     }
 
     fn parse_input_part_2(text_input: String) -> Self::Problem {
@@ -191,16 +179,18 @@ impl super::Solution for DaySolution {
     }
 
     fn solve_part_1(problem: Self::Problem) -> Self::Answer {
-        let Self::Problem { start, parts, flows } = problem;
+        let Self::Problem { parts, flows } = problem;
+        let start = String::from("in");
         let answer =
             parts
             .iter()
-            .map(|part| DaySolution::classify_one_part(part, &start, &flows))
-            .filter(|decision| match decision {
+            .filter(|part| match DaySolution::classify_one_part(part, &start, &flows) {
                 Decision::Accept => true,
                 _ => false
+
             })
-            .count();
+            .map(|part| part.x + part.m + part.a + part.s)
+            .sum();
         Some(answer)
     }
 
