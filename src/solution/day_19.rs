@@ -2,7 +2,9 @@ use std::collections::HashMap;
 use regex::Regex;
 
 #[derive(Debug, Clone)]
-pub struct Part {x: u32, m: u32, a: u32, s: u32}
+pub struct Part {x: usize, m: usize, a: usize, s: usize}
+
+pub struct PartRanges {x: (usize, usize), m: (usize, usize), a: (usize, usize), s: (usize, usize)}
 
 #[derive(Debug, Clone)]
 pub struct Workflow { name: String, rules: Vec<Rule> }
@@ -11,7 +13,7 @@ pub struct Workflow { name: String, rules: Vec<Rule> }
 enum Rule { Condition(Condition), Decision(Decision) }
 
 #[derive(Debug, Clone)]
-struct Condition { par: char, cmp: Comparison, val: u32, dec: Decision }
+struct Condition { par: char, cmp: Comparison, val: usize, dec: Decision }
 
 #[derive(Debug, Clone)]
 enum Decision { Accept, Reject, SendTo (String) }
@@ -46,7 +48,7 @@ impl DaySolution {
                     let c = Condition {
                         par: par.chars().nth(0).unwrap(),
                         cmp: if cmp == "<" {Comparison::Lt} else {Comparison::Gt},
-                        val: val.parse::<u32>().unwrap(),
+                        val: val.parse::<usize>().unwrap(),
                         dec: match_decision(dec),
                     };
                     Some(c)
@@ -94,10 +96,10 @@ impl DaySolution {
         re.captures(line).map(|c| {
             let (_, [x, m, a, s]) = c.extract();
             Part {
-                x: x.parse::<u32>().unwrap(),
-                m: m.parse::<u32>().unwrap(),
-                a: a.parse::<u32>().unwrap(),
-                s: s.parse::<u32>().unwrap(),
+                x: x.parse::<usize>().unwrap(),
+                m: m.parse::<usize>().unwrap(),
+                a: a.parse::<usize>().unwrap(),
+                s: s.parse::<usize>().unwrap(),
             }
         })
         .unwrap()
@@ -146,6 +148,115 @@ impl DaySolution {
         }
     }
 
+    fn part_ranges_to_combinations(part: &PartRanges) -> usize {
+        (part.x.1 - part.x.0 + 1) as usize *
+        (part.m.1 - part.m.0 + 1) as usize *
+        (part.a.1 - part.a.0 + 1) as usize *
+        (part.s.1 - part.s.0 + 1) as usize
+    }
+
+    fn decision_to_combinations(decision: &Decision, part: &PartRanges, flows: &HashMap<String, Workflow>) -> usize {
+        match decision {
+            Decision::SendTo(new_flow) => Self::find_all_combinations(part, new_flow, flows),
+            Decision::Accept => Self::part_ranges_to_combinations(part),
+            Decision::Reject => 0,
+        }
+    }
+
+    fn split_part_ranges(part:&PartRanges, par: char, by_val: usize) -> (PartRanges, PartRanges) {
+        match par {
+            'x' => ( PartRanges { x: (part.x.0, by_val - 1), ..*part.clone() }, PartRanges{ x: (by_val, part.x.1), ..*part.clone()}),
+            'm' => ( PartRanges { m: (part.m.0, by_val - 1), ..*part.clone() }, PartRanges{ m: (by_val, part.m.1), ..*part.clone()}),
+            'a' => ( PartRanges { a: (part.a.0, by_val - 1), ..*part.clone() }, PartRanges{ a: (by_val, part.a.1), ..*part.clone()}),
+            's' => ( PartRanges { s: (part.s.0, by_val - 1), ..*part.clone() }, PartRanges{ s: (by_val, part.s.1), ..*part.clone()}),
+            _ => unreachable!()
+        }
+
+    }
+    // this recursive function processes the part ranges through the workflows and splits ranges where required
+    // at the entry point ranges of all parameters are 1..4000
+    // we start atthe workflow in and apply all conditions of it splitting range by criteria
+    // for example: a<1234 will lead to split of range a into
+    //   [1..1233] and [1234..4000]
+    // part [1..1233] will be passed into the same workflow again
+    // part [1234..4000] will be processed according to the decision of the rule (A, R, SendTo)
+    fn find_all_combinations(part: &PartRanges, flow: &String, flows: &HashMap<String, Workflow>) -> usize {
+
+        let rules = flows.get(flow).unwrap().clone().rules;
+
+        let combinations: usize = rules
+            .iter()
+            .fold((Some(part), 0_usize), |(opt_part, acc_combinations), rule| {
+                    match opt_part {
+                        Some(part) =>
+                            match rule {
+                                Rule::Condition(c) => {
+                                    let lhs = match c.par {
+                                        'x' => part.x,
+                                        'm' => part.m,
+                                        'a' => part.a,
+                                        's' => part.s,
+                                        _ => unreachable!("pasrt name is not in XMAS list (condition:{:?})", &c)
+                                    };
+                                    match c.cmp {
+                                        // if range fully satisfies condition then we follow the decision
+                                        // but if range partially satisfies the condition then we split it into 2 subranges
+                                        Comparison::Gt => {
+                                            // range fully meets condition
+                                            if lhs.0 > c.val {
+                                                let new_combinations =
+                                                Self::decision_to_combinations(&c.dec, part, flows);
+                                                (None, acc_combinations + new_combinations)
+                                            // range partially meets condition: split and process according to decision
+                                            } else if lhs.1 > c.val {
+                                                let (p1, p2) = Self::split_part_ranges(part, c.par, c.val + 1);
+                                                let new_combinations =
+                                                    Self::find_all_combinations(&p1, flow, flows) +
+                                                    Self::decision_to_combinations(&c.dec, &p2, flows);
+                                                (None, acc_combinations + new_combinations)
+                                            // range doesn't meet condition - go to the rule
+                                            } else {
+                                                (Some(part), acc_combinations)
+                                            }
+                                        },
+                                        Comparison::Lt => {
+                                            // range fully meets condition
+                                            if lhs.1 < c.val {
+                                                let new_combinations =
+                                                Self::decision_to_combinations(&c.dec, part, flows);
+                                                (None, acc_combinations + new_combinations)
+                                            // range partially meets condition: split and process according to decision
+                                            } else if lhs.0 < c.val {
+                                                let (p1, p2) = Self::split_part_ranges(part, c.par, c.val);
+                                                let new_combinations =
+                                                    Self::decision_to_combinations(&c.dec, &p1, flows) +
+                                                    Self::find_all_combinations(&p2, flow, flows);
+                                                (None, acc_combinations + new_combinations)
+                                            // range doesn't meet condition - go to the rule
+                                            } else {
+                                                (Some(part), acc_combinations)
+                                            }
+                                        },
+                                    }
+                                },
+                                Rule::Decision(d) => {
+                                    let new_combinations = Self::decision_to_combinations(d, part, flows);
+                                    (None, acc_combinations + new_combinations)
+                                },
+                            },
+                        None => (None, acc_combinations)
+                    }
+            })
+            .1;
+
+        combinations
+
+        /*println!(
+            "Classify part {:?} with workflow {:?}, decision = {:?}",
+            part, flows.get(flow), &opt_decision);*/
+
+    }
+
 }
 
 pub struct DaySolution(P);
@@ -154,7 +265,7 @@ impl super::Solution for DaySolution {
 
     const DAY_NUMBER: u8 = 19;
 
-    type Answer = Option<u32>;
+    type Answer = Option<usize>;
     type Problem = P;
 
     fn parse_input_part_1(text_input: String) -> Self::Problem {
@@ -194,8 +305,12 @@ impl super::Solution for DaySolution {
         Some(answer)
     }
 
-    fn solve_part_2(_problem: Self::Problem) -> Self::Answer {
-        None
+    fn solve_part_2(problem: Self::Problem) -> Self::Answer {
+        let Self::Problem { parts: _, flows } = problem;
+        let start = String::from("in");
+        let part = PartRanges {x: (1,4000), m: (1,4000), a: (1, 4000), s: (1, 4000)};
+        let answer = DaySolution::find_all_combinations(&part, &start, &flows);
+        Some(answer)
     }
 
     fn show_answer(answer: Self::Answer) -> String {
