@@ -165,10 +165,10 @@ impl DaySolution {
 
     fn split_part_ranges(part:&PartRanges, par: char, by_val: usize) -> (PartRanges, PartRanges) {
         match par {
-            'x' => ( PartRanges { x: (part.x.0, by_val - 1), ..*part.clone() }, PartRanges{ x: (by_val, part.x.1), ..*part.clone()}),
-            'm' => ( PartRanges { m: (part.m.0, by_val - 1), ..*part.clone() }, PartRanges{ m: (by_val, part.m.1), ..*part.clone()}),
-            'a' => ( PartRanges { a: (part.a.0, by_val - 1), ..*part.clone() }, PartRanges{ a: (by_val, part.a.1), ..*part.clone()}),
-            's' => ( PartRanges { s: (part.s.0, by_val - 1), ..*part.clone() }, PartRanges{ s: (by_val, part.s.1), ..*part.clone()}),
+            'x' => ( PartRanges { x: (part.x.0, by_val - 1), ..*part }, PartRanges{ x: (by_val, part.x.1), ..*part }),
+            'm' => ( PartRanges { m: (part.m.0, by_val - 1), ..*part }, PartRanges{ m: (by_val, part.m.1), ..*part }),
+            'a' => ( PartRanges { a: (part.a.0, by_val - 1), ..*part }, PartRanges{ a: (by_val, part.a.1), ..*part }),
+            's' => ( PartRanges { s: (part.s.0, by_val - 1), ..*part }, PartRanges{ s: (by_val, part.s.1), ..*part }),
             _ => unreachable!()
         }
 
