@@ -1,5 +1,5 @@
-use regex::Regex;
 use rayon::prelude::*;
+use regex::Regex;
 
 const S_W: u8 = b'.';
 const S_B: u8 = b'#';
@@ -59,7 +59,7 @@ impl DaySolution {
         pos: usize,
         brk_idx: usize,
         rem_brk: usize,
-        min_req_len: usize
+        min_req_len: usize,
     ) -> usize {
         let (spr, pos, brk, idx, rem, req) = (springs, pos, brokens, brk_idx, rem_brk, min_req_len);
         let init_brk = brk[idx];
@@ -74,12 +74,10 @@ impl DaySolution {
 
         if pos + 1 < req {
             0
-        }
-        else if pos == 0 && idx == 0 && rem == 1 && (spr_at_pos == S_B || spr_at_pos == S_U) {
+        } else if pos == 0 && idx == 0 && rem == 1 && (spr_at_pos == S_B || spr_at_pos == S_U) {
             //if debug {println!("pos == 0 && idx == 0 && rem == 1 && (spr_at_pos == S_B || spr_at_pos == S_U)")};
             1
-        }
-        else if pos == 0 && idx == 0 && rem == 0 && (spr_at_pos == S_W || spr_at_pos == S_U) {
+        } else if pos == 0 && idx == 0 && rem == 0 && (spr_at_pos == S_W || spr_at_pos == S_U) {
             //if debug {println!("pos == 0 && idx == 0 && rem == 0 && (spr_at_pos == S_W || spr_at_pos == S_U)")};
             1
         }
@@ -92,8 +90,7 @@ impl DaySolution {
         else if rem == 0 && spr_at_pos == S_B {
             //if debug {println!("rem == 0 && spr_at_pos == S_B")};
             0
-        }
-        else if pos == 0 {
+        } else if pos == 0 {
             panic!("non-handled pos == 0 condition")
         }
         //if remaining broken springs > 0 and series of broken springs has not yet started remaining broken = init_broken
@@ -102,7 +99,7 @@ impl DaySolution {
         else if rem == init_brk && spr_at_pos == S_U {
             //if debug {println!("rem > 0 && rem == init_brk && spr_at_pos == S_U")};
             Self::rev_calculate(spr, brk, pos - 1, idx, rem - 1, req - 1)
-            + Self::rev_calculate(spr, brk, pos - 1, idx, rem, req)
+                + Self::rev_calculate(spr, brk, pos - 1, idx, rem, req)
         }
         //if remaining broken springs > 0 and we find W-spring, then = 0
         else if rem == init_brk && spr_at_pos == S_W {
@@ -113,9 +110,8 @@ impl DaySolution {
         //    - move on
         else if rem == init_brk && spr_at_pos == S_B {
             //if debug {println!("rem > 0 && rem == init_brk && spr_at_pos == S_B")};
-            Self::rev_calculate(spr, brk, pos - 1, idx, rem - 1, req-1)
-        }
-        else if rem == init_brk {
+            Self::rev_calculate(spr, brk, pos - 1, idx, rem - 1, req - 1)
+        } else if rem == init_brk {
             panic!("non handled rem == init_brk condition")
         }
         // if remaining broken in the index is 0 but next spring is broken then = 0
@@ -125,16 +121,15 @@ impl DaySolution {
         }
         // if remaining broken in the index is 0 but next spring is unknown or working then
         //    - move on by decreasing idx and
-        else if rem == 0 && idx >  0 && (spr_at_pos == S_W || spr_at_pos == S_U) {
+        else if rem == 0 && idx > 0 && (spr_at_pos == S_W || spr_at_pos == S_U) {
             //if debug {println!("rem == 0 && idx >  0 && ( spr_at_pos == S_W || spr_at_pos == S_U )")};
-            Self::rev_calculate(spr, brk, pos - 1, idx - 1, brk[idx-1], req - 1)
+            Self::rev_calculate(spr, brk, pos - 1, idx - 1, brk[idx - 1], req - 1)
         }
         // if remaining broken = 0 and no indexes and current spring is W or U, move on to next
         else if rem == 0 && idx == 0 && (spr_at_pos == S_W || spr_at_pos == S_U) {
             //if debug {println!("rem == 0 && idx == 0 && (spr_at_pos == S_W || spr_at_pos == S_U)")};
             Self::rev_calculate(spr, brk, pos - 1, idx, rem, req)
-        }
-        else if rem == 0 {
+        } else if rem == 0 {
             panic!("non handled rem == 0 condition")
         }
         //if remaining broken springs > 0 and we find W-spring, then = 0
@@ -146,12 +141,12 @@ impl DaySolution {
         else if rem > 0 && (spr_at_pos == S_B || spr_at_pos == S_U) {
             //if debug {println!("pos > 0 && rem > 0 && rem != init_brk && (spr_at_pos == S_B || spr_at_pos == S_U)")};
             Self::rev_calculate(spr, brk, pos - 1, idx, rem - 1, req - 1)
-        }
-        else if rem > 0 {
+        } else if rem > 0 {
             panic!("non handled rem > 0 condition")
         } else {
             panic!(
-                "Undefined case! pos: {pos}, brk_idx {idx}, rem: {rem}, pos_val: {:?}", spr_at_pos
+                "Undefined case! pos: {pos}, brk_idx {idx}, rem: {rem}, pos_val: {:?}",
+                spr_at_pos
             )
         }
     }
@@ -166,12 +161,18 @@ impl DaySolution {
         // minimum required len for all broken springs and spaces between
         let min_req_len: usize = record.brokens.iter().fold(0_usize, |z, x| z + x) + init_brk_idx;
         //Self::rev_calculate(&rev_springs, &rev_brokens, init_pos, init_brk_idx, rem_brk)
-        Self::rev_calculate(&record.springs, &record.brokens, init_pos, init_brk_idx, rem_brk, min_req_len)
+        Self::rev_calculate(
+            &record.springs,
+            &record.brokens,
+            init_pos,
+            init_brk_idx,
+            rem_brk,
+            min_req_len,
+        )
     }
 }
 
 impl super::Solution for DaySolution {
-
     const DAY_NUMBER: u8 = 12;
 
     type Answer = Option<usize>;
@@ -196,8 +197,8 @@ impl super::Solution for DaySolution {
             .iter()
             .enumerate()
             .map(|(idx, record)| {
-                if (idx+1) % 50 == 0 {
-                println!("processing part 1, record {:>3}", idx+1);
+                if (idx + 1) % 50 == 0 {
+                    println!("processing part 1, record {:>3}", idx + 1);
                 };
                 DaySolution::process_one_record(record)
             })
@@ -211,8 +212,12 @@ impl super::Solution for DaySolution {
             .enumerate()
             .map(|(idx, record)| {
                 let v = DaySolution::process_one_record(record);
-                if (idx+1) % 1 == 0 {
-                println!("processing part 2, record: {:>4}, count: {:>13}", idx+1, v);
+                if (idx + 1) % 1 == 0 {
+                    println!(
+                        "processing part 2, record: {:>4}, count: {:>13}",
+                        idx + 1,
+                        v
+                    );
                 };
                 v
             })
@@ -230,11 +235,17 @@ impl super::Solution for DaySolution {
 
 #[cfg(test)]
 mod tests {
-    use super::{DaySolution as DS, Record as Rec, S_B, S_W, S_U};
+    use super::{DaySolution as DS, Record as Rec, S_B, S_U, S_W};
 
     #[test]
     fn parse_one_line() {
-        assert_eq!(DS::parse_one_line(".#? 1,1"), Rec { springs: vec![S_W, S_B, S_U], brokens: vec![1,1]})
+        assert_eq!(
+            DS::parse_one_line(".#? 1,1"),
+            Rec {
+                springs: vec![S_W, S_B, S_U],
+                brokens: vec![1, 1]
+            }
+        )
     }
     #[test]
     fn parse_one_line_part_2() {
@@ -242,7 +253,7 @@ mod tests {
             DS::parse_one_line_part_2(".# 1,2"),
             Rec {
                 springs: vec![S_W, S_B, S_U, S_W, S_B, S_U, S_W, S_B, S_U, S_W, S_B, S_U, S_W, S_B],
-                brokens: vec![1,2,1,2,1,2,1,2,1,2]
+                brokens: vec![1, 2, 1, 2, 1, 2, 1, 2, 1, 2]
             }
         )
     }
@@ -267,10 +278,7 @@ mod tests {
                 0
             );
         */
-        assert_eq!(
-            DS::process_one_record(&DS::parse_one_line("...# 1")),
-            1
-        );
+        assert_eq!(DS::process_one_record(&DS::parse_one_line("...# 1")), 1);
     }
 
     #[test]

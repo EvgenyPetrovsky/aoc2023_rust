@@ -62,7 +62,7 @@ impl Trench {
         Self(trench)
     }
 
-    fn _visualise(&self) -> () {
+    fn _visualise(&self) {
         let (rows, cols, lstr, lstc) = self.0.iter().fold(
             (0_i64, 0_i64, 0_i64, 0_i64),
             |(rg0, cg0, rl0, cl0),

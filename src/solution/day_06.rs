@@ -78,10 +78,11 @@ impl DaySolution {
         let b: f64 = -(race.time as f64);
         let c: f64 = race.record as f64;
         let d: f64 = ((b.powf(2.) - 4. * a * c) as f64).powf(0.5);
-        let x1 = (- b - d) / (2. * a);
-        let x2 = (- b + d) / (2. * a);
+        let x1 = (-b - d) / (2. * a);
+        let x2 = (-b + d) / (2. * a);
         let (x1_c, x2_f) = (x1.ceil(), x2.floor());
-        ((if x2 == x2_f {x2_f-1.} else {x2_f}) as u64) + 1 - ((if x1 == x1_c {x1_c + 1.} else {x1_c}) as u64)
+        ((if x2 == x2_f { x2_f - 1. } else { x2_f }) as u64) + 1
+            - ((if x1 == x1_c { x1_c + 1. } else { x1_c }) as u64)
     }
 }
 
@@ -130,7 +131,7 @@ mod tests {
 
     use crate::solution::day_06::Timespan;
 
-    use super::{DaySolution, Race, Part};
+    use super::{DaySolution, Part, Race};
 
     #[test]
     fn parse_input() {
@@ -151,24 +152,31 @@ mod tests {
         );
         assert_eq!(
             DaySolution::parse_input(Part::Two, String::from(line)),
-            vec![
-                Race { time: 71530, record: 940200 }
-            ]
+            vec![Race {
+                time: 71530,
+                record: 940200
+            }]
         )
     }
 
     #[test]
     fn _analytic_solution() {
         assert_eq!(
-            DaySolution::_analytic_solution(Race{ time: 7, record: 9}),
+            DaySolution::_analytic_solution(Race { time: 7, record: 9 }),
             4 as Timespan
         );
         assert_eq!(
-            DaySolution::_analytic_solution(Race{ time: 15, record: 40}),
+            DaySolution::_analytic_solution(Race {
+                time: 15,
+                record: 40
+            }),
             8 as Timespan
         );
         assert_eq!(
-            DaySolution::_analytic_solution(Race{ time: 30, record: 200}),
+            DaySolution::_analytic_solution(Race {
+                time: 30,
+                record: 200
+            }),
             9 as Timespan
         );
     }

@@ -3,7 +3,6 @@ type P = ();
 pub struct DaySolution(P);
 
 impl super::Solution for DaySolution {
-
     const DAY_NUMBER: u8 = 25;
 
     type Answer = Option<i32>;
@@ -28,7 +27,7 @@ impl super::Solution for DaySolution {
     fn show_answer(answer: Self::Answer) -> String {
         match answer {
             Some(value) => format!("{}", value),
-            None => format!("")
+            None => format!(""),
         }
     }
 }

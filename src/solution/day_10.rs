@@ -198,9 +198,9 @@ impl super::Solution for DaySolution {
             .iter()
             .enumerate()
             .map(|(ir, r)| {
-                r.iter()
-                    .enumerate()
-                    .fold((0_usize, 0_usize, &None), |(crosses, acc, prev_boarder), (ic, s)| {
+                r.iter().enumerate().fold(
+                    (0_usize, 0_usize, &None),
+                    |(crosses, acc, prev_boarder), (ic, s)| {
                         if loop_lcns.contains(&Location { r: ir, c: ic }) {
                             match (prev_boarder, s) {
                                 // just a | - then it is definitely a cross
@@ -209,18 +209,19 @@ impl super::Solution for DaySolution {
                                 // here and below: in test case and real case S is similar to F-shaped corner
                                 (Some(Segment::NE), Segment::EW)
                                 | (Some(Segment::SE), Segment::EW)
-                                | (Some(Segment::S ), Segment::EW) => (crosses, acc, prev_boarder),
+                                | (Some(Segment::S), Segment::EW) => (crosses, acc, prev_boarder),
                                 //'┌┐', '└┘', '┌─┐', '└─┘' are not crosses
                                 (Some(Segment::NE), Segment::NW)
                                 | (Some(Segment::SE), Segment::SW)
-                                | (Some(Segment::S ), Segment::SW) => (crosses, acc, &None),
+                                | (Some(Segment::S), Segment::SW) => (crosses, acc, &None),
                                 // '┌┘', '┌┘', '└─┐', '└─┐' are crosses
                                 (Some(Segment::NE), Segment::SW)
                                 | (Some(Segment::SE), Segment::NW)
-                                | (Some(Segment::S ), Segment::NW) => (crosses + 1, acc, &None),
+                                | (Some(Segment::S), Segment::NW) => (crosses + 1, acc, &None),
                                 (None, Segment::NE) => (crosses, acc, &Some(Segment::NE)),
-                                (None, Segment::SE)
-                                | (None, Segment::S ) => (crosses, acc, &Some(Segment::SE)),
+                                (None, Segment::SE) | (None, Segment::S) => {
+                                    (crosses, acc, &Some(Segment::SE))
+                                }
                                 _ => (crosses, acc, prev_boarder),
                             }
                         } else if crosses % 2 == 1 {
@@ -228,7 +229,8 @@ impl super::Solution for DaySolution {
                         } else {
                             (crosses, acc, prev_boarder)
                         }
-                    })
+                    },
+                )
             })
             .map(|(_, acc, _)| acc)
             .sum();

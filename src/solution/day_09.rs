@@ -2,7 +2,10 @@ use regex::Regex;
 
 type Number = i64;
 type Series = Vec<Number>;
-enum DiffDirection {Forward, Backward}
+enum DiffDirection {
+    Forward,
+    Backward,
+}
 
 type Report = Vec<Series>;
 type P = Report;
@@ -41,7 +44,7 @@ impl DaySolution {
             .skip(1)
             .zip(series.iter())
             .map(|(n2, n1)| match diff_direction {
-                DiffDirection::Forward  => n2 - n1,
+                DiffDirection::Forward => n2 - n1,
                 DiffDirection::Backward => n1 - n2,
             })
             .collect()
@@ -78,7 +81,6 @@ impl DaySolution {
 }
 
 impl super::Solution for DaySolution {
-
     const DAY_NUMBER: u8 = 9;
 
     type Answer = Option<Number>;
@@ -96,8 +98,7 @@ impl super::Solution for DaySolution {
     }
 
     fn solve_part_1(problem: Self::Problem) -> Self::Answer {
-        let answer =
-            problem
+        let answer = problem
             .iter()
             .map(|series| DaySolution::find_next_number(0, series))
             .sum();
@@ -105,8 +106,7 @@ impl super::Solution for DaySolution {
     }
 
     fn solve_part_2(problem: Self::Problem) -> Self::Answer {
-        let answer =
-            problem
+        let answer = problem
             .iter()
             .map(|series| DaySolution::find_prev_number(0, series))
             .sum();
@@ -138,8 +138,14 @@ mod tests {
             DS::diff_series(&vec![10, 13, 16, 21, 30, 45], DD::Forward),
             vec![3, 3, 5, 9, 15]
         );
-        assert_eq!(DS::diff_series(&vec![3, 3, 5, 9, 15], DD::Forward), vec![0, 2, 4, 6]);
-        assert_eq!(DS::diff_series(&vec![0, 2, 4, 6], DD::Forward), vec![2, 2, 2]);
+        assert_eq!(
+            DS::diff_series(&vec![3, 3, 5, 9, 15], DD::Forward),
+            vec![0, 2, 4, 6]
+        );
+        assert_eq!(
+            DS::diff_series(&vec![0, 2, 4, 6], DD::Forward),
+            vec![2, 2, 2]
+        );
         assert_eq!(DS::diff_series(&vec![2, 2, 2], DD::Forward), vec![0, 0]);
     }
 

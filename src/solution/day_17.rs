@@ -35,7 +35,6 @@ type Memory = HashMap<MemKey, HeatLoss>;
 type CityMap = Vec<Vec<HeatLoss>>;
 type P = CityMap;
 
-
 pub struct DaySolution(P);
 
 impl DaySolution {
@@ -79,7 +78,7 @@ impl DaySolution {
         let acc_heat_loss = pos.acc_heat_loss + on_map[loc.0 as usize][loc.1 as usize];
         Position {
             loc,
-            dir: dir,
+            dir,
             cnt,
             acc_heat_loss,
         }
@@ -120,8 +119,7 @@ impl DaySolution {
         } else {
             let mut mem = memory.clone();
             let old_pos = new_pos;
-            let new_pos: Vec<Position> =
-                old_pos
+            let new_pos: Vec<Position> = old_pos
                 .iter()
                 .flat_map(|pos| Self::find_possible_moves(pos, on_map, memory))
                 .collect();
@@ -140,8 +138,7 @@ impl DaySolution {
                 }
             });
             //prune positions further and drop all those which have worse parameters than in memory
-            let mut new_pos: Vec<Position> =
-                new_pos
+            let mut new_pos: Vec<Position> = new_pos
                 //.clone()
                 .into_iter()
                 .filter(|p| {
@@ -158,8 +155,16 @@ impl DaySolution {
                 })
                 .collect();
             new_pos.sort_by_key(|a| (a.loc, a.dir, a.cnt));
-            new_pos.dedup_by_key(|a| MemKey {cnt: a.cnt, loc: a.loc, dir: a.dir});
-            println!("map size: {:>6}, number of new positions: {:>8}", mem.len(), new_pos.len());
+            new_pos.dedup_by_key(|a| MemKey {
+                cnt: a.cnt,
+                loc: a.loc,
+                dir: a.dir,
+            });
+            println!(
+                "map size: {:>6}, number of new positions: {:>8}",
+                mem.len(),
+                new_pos.len()
+            );
             //new_pos.iter().for_each(|p| { println!("Position: {:?}", p) });
             Self::iterate(&new_pos, on_map, &mem)
         }
@@ -206,15 +211,21 @@ impl super::Solution for DaySolution {
         ];
         let memory = DaySolution::iterate(&new_pos, &problem, &init_mem);
 
-        let best: u32 =
-            memory
+        let best: u32 = memory
             .iter()
             .filter(|(k, _)| (k.loc.0 + 1, k.loc.1 + 1) == map_size)
             .filter(|(k, _)| k.cnt >= STRAIGHT_MIN)
             .map(|(_, v)| v)
-            .fold(u32::MAX, |best, this| {
-                if *this < best { *this } else { best }
-            });
+            .fold(
+                u32::MAX,
+                |best, this| {
+                    if *this < best {
+                        *this
+                    } else {
+                        best
+                    }
+                },
+            );
 
         let answer = best;
         Some(answer)

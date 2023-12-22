@@ -58,7 +58,7 @@ impl Lens {
     fn from(label: &String, focal: u8) -> Self {
         Lens {
             label: label.clone(),
-            focal: focal,
+            focal,
         }
     }
     fn hash(&self) -> Hash {
@@ -144,7 +144,6 @@ impl DaySolution {
 }
 
 impl super::Solution for DaySolution {
-
     const DAY_NUMBER: u8 = 15;
 
     type Answer = Option<usize>;

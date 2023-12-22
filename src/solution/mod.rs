@@ -26,7 +26,7 @@ pub trait Solution {
     fn run(part: super::Part, mode: super::Mode, stdin: &Option<String>) -> String {
         let input = match stdin {
             Some(data) => data.clone(),
-            _ => Self::load_file_input(mode)
+            _ => Self::load_file_input(mode),
         };
         let problem = match part {
             super::Part::One => Self::parse_input_part_1(input),

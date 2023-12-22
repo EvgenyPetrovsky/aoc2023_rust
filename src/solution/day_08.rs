@@ -60,11 +60,16 @@ impl Day {
         })
     }
 
-    fn gcd(a: usize, b: usize) -> usize {if b==0 {a} else {Self::gcd(b, a%b)}}
-    fn lcm(a: usize, b: usize) -> usize { (a*b)/Self::gcd(a,
-
-        b) }
-
+    fn gcd(a: usize, b: usize) -> usize {
+        if b == 0 {
+            a
+        } else {
+            Self::gcd(b, a % b)
+        }
+    }
+    fn lcm(a: usize, b: usize) -> usize {
+        (a * b) / Self::gcd(a, b)
+    }
 }
 
 impl super::Solution for Day {
@@ -125,23 +130,22 @@ impl super::Solution for Day {
             .iter()
             .map(|l| {
                 instructions
-                .iter()
-                .cycle()
-                .scan(*l, |position, instruction| {
-                    // make one run trhough network and update the position
-                    *position = Day::go_to_new_location(position, instruction, &network);
-                    match position[2] == b'Z' {
-                        true => None,
-                        _ => Some(*position),
-                    }
-                })
-                .count()
+                    .iter()
+                    .cycle()
+                    .scan(*l, |position, instruction| {
+                        // make one run trhough network and update the position
+                        *position = Day::go_to_new_location(position, instruction, &network);
+                        match position[2] == b'Z' {
+                            true => None,
+                            _ => Some(*position),
+                        }
+                    })
+                    .count()
             })
             .map(|r| r + 1)
             .fold(1, |z, x| Day::lcm(z, x));
 
         Some(answer)
-
     }
 
     fn show_answer(answer: Self::Answer) -> String {

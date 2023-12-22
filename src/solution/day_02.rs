@@ -107,14 +107,12 @@ impl super::Solution for DaySolution {
 
     fn solve_part_1(problem: Self::Problem) -> Self::Answer {
         let (max_r, max_g, max_b) = (12_u8, 13_u8, 14_u8);
-        let valid_id_sum: u32 =
-            problem
+        let valid_id_sum: u32 = problem
             .iter()
             .map(|g| {
-                let folded_set =
-                    g.sets
-                    .iter()
-                    .fold(DaySolution::ZERO_SET,|z, &x| DaySolution::max_ball_sets(z, x));
+                let folded_set = g.sets.iter().fold(DaySolution::ZERO_SET, |z, &x| {
+                    DaySolution::max_ball_sets(z, x)
+                });
                 (g.id, folded_set)
             })
             .filter(|(_id, s)| {
@@ -122,22 +120,20 @@ impl super::Solution for DaySolution {
                 //println!("{} Game {:>3}: red: {:>2}, green: {:>2}, blue: {:>2}", if condition {'*'} else {' '}, _id, s.red, s.green, s.blue);
                 condition
             })
-            .fold(0, |z, x| z + x.0) as u32;
+            .fold(0, |z, x| z + x.0);
         Some(valid_id_sum)
     }
 
     fn solve_part_2(problem: Self::Problem) -> Self::Answer {
-        let power_sum: u32 =
-            problem
+        let power_sum: u32 = problem
             .iter()
             .map(|g| {
-                let folded_set =
-                    g.sets
-                    .iter()
-                    .fold(DaySolution::ZERO_SET,|z, &x| DaySolution::max_ball_sets(z, x));
+                let folded_set = g.sets.iter().fold(DaySolution::ZERO_SET, |z, &x| {
+                    DaySolution::max_ball_sets(z, x)
+                });
                 folded_set
             })
-            .map(|s| {s.red as u32 * s.green as u32 * s.blue as u32})
+            .map(|s| s.red as u32 * s.green as u32 * s.blue as u32)
             .sum();
         Some(power_sum)
     }
@@ -168,9 +164,21 @@ mod tests {
             Game {
                 id: 1,
                 sets: vec![
-                    BallSet {red: 4, green: 0,blue: 3},
-                    BallSet {red: 1, green: 2,blue: 6},
-                    BallSet {red: 0, green: 2,blue: 0},
+                    BallSet {
+                        red: 4,
+                        green: 0,
+                        blue: 3
+                    },
+                    BallSet {
+                        red: 1,
+                        green: 2,
+                        blue: 6
+                    },
+                    BallSet {
+                        red: 0,
+                        green: 2,
+                        blue: 0
+                    },
                 ]
             }
         )

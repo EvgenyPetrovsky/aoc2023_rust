@@ -33,11 +33,7 @@ impl DaySolution {
             .iter()
             .rev()
             .zip(b.iter())
-            .map(|(aa, bb)| {
-                aa.iter().zip(bb.iter())
-                .filter(|(l, r)| *l != *r)
-                .count()
-            })
+            .map(|(aa, bb)| aa.iter().zip(bb.iter()).filter(|(l, r)| *l != *r).count())
             .sum();
         cnt_smudges == 1
     }
