@@ -1,8 +1,11 @@
-use std::{collections::{HashMap, HashSet}, iter::successors};
+use std::{
+    collections::{HashMap, HashSet},
+    iter::successors,
+};
 
 use regex::Regex;
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum Signal {
     Lo,
     Hi,
@@ -32,17 +35,16 @@ enum Module {
     },
     Button {
         name: Label,
-        input: Signal,
     },
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 struct Cable {
     from: Label,
     to: Label,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 struct Pulse {
     signal: Signal,
     cable: Cable,
@@ -71,11 +73,12 @@ impl DaySolution {
                 })
             })
             .collect();
-        Regex::new(r#"^([%&])([a-z]+) -> "#)
+        Regex::new(r#"^([%&]?)([a-z]+) -> "#)
             .unwrap()
             .captures(line)
             .map(|c| {
                 let (_, [module_type, name]) = c.extract();
+                //println!("Module type: '{}', module name = '{}'", module_type, name);
                 match (name, module_type) {
                     (_, "%") => Module::FlipFlop {
                         name: String::from(name),
@@ -126,32 +129,30 @@ impl DaySolution {
     fn push_button(network: Network) -> (Network, Vec<Pulse>) {
         let init: Vec<Pulse> = Self::init_pulse();
         let mut network: Network = network;
-        let pulses: Vec<Pulse> =
-            successors(Some(init), |pulses: &Vec<Pulse>| {
-                if pulses.len() == 0 {None}
-                else {
-                        let ems = network.excited_modules(&pulses);
-                        network.consume_pulses(pulses.clone());
-                        let new_pulses = network.emit_pulses(ems);
-                        Some(new_pulses)
-                    }
-            })
-            .flatten()
-            .collect::<Vec<Pulse>>();
+        let pulses: Vec<Pulse> = successors(Some(init), |pulses: &Vec<Pulse>| {
+            if pulses.len() == 0 {
+                None
+            } else {
+                let ems = network.excited_modules(&pulses);
+                network.consume_pulses(pulses.clone());
+                let new_pulses = network.emit_pulses(ems);
+                Some(new_pulses)
+            }
+        })
+        .flatten()
+        .collect::<Vec<Pulse>>();
         (network, pulses)
-
     }
 
     fn init_pulse() -> Vec<Pulse> {
         let from = String::from("button");
-        let to   = String::from("broadcaster");
+        let to = String::from("broadcaster");
         let pulse = Pulse {
-            cable:  Cable { from, to },
+            cable: Cable { from, to },
             signal: Signal::Lo,
         };
-        vec!(pulse)
+        vec![pulse]
     }
-
 }
 
 impl State {
@@ -169,7 +170,7 @@ impl Module {
      */
     fn name(&self) -> String {
         match self {
-            Module::Button { name, input: _ }
+            Module::Button { name }
             | Module::Broadcaster { name, input: _ }
             | Module::FlipFlop {
                 name,
@@ -185,7 +186,11 @@ impl Module {
      */
     fn update_input(&mut self, from: Label, signal: Signal) {
         *self = match self {
-            Module::FlipFlop { name, state, input: _ } => Module::FlipFlop {
+            Module::FlipFlop {
+                name,
+                state,
+                input: _,
+            } => Module::FlipFlop {
                 name: name.clone(),
                 state: match signal {
                     Signal::Lo => state.flip(),
@@ -196,13 +201,16 @@ impl Module {
             Module::Conjunction { name, inputs } => {
                 //let mut inputs = inputs;
                 inputs.insert(from, signal);
-                Module::Conjunction { name: name.clone(), inputs: inputs.clone() }
+                Module::Conjunction {
+                    name: name.clone(),
+                    inputs: inputs.clone(),
+                }
             }
             Module::Broadcaster { name, input: _ } => Module::Broadcaster {
                 name: name.clone(),
                 input: signal,
             },
-            Module::Button { name: _, input: _ } => {
+            Module::Button { name: _ } => {
                 unreachable!("Something is wrong! There must be no input for 'Button' module")
             }
         };
@@ -214,16 +222,19 @@ impl Module {
     */
     fn emit_signal(&self) -> Option<Signal> {
         match self {
-            Self::Button { name: _, input } => Some(Signal::Lo),
+            Self::Button { name: _ } => Some(Signal::Lo),
             Self::Broadcaster { name: _, input } => Some(input.clone()),
             Self::FlipFlop {
                 name: _,
                 state,
                 input,
             } => match (input, state) {
+                /* state is already updated on previous step, therefore
+                    State On must emit Hi signal,
+                    State Off must emit Lo signal */
                 (Signal::Hi, _) => None,
-                (Signal::Lo, State::Off) => Some(Signal::Hi),
-                (Signal::Lo, State::On) => Some(Signal::Lo),
+                (Signal::Lo, State::Off) => Some(Signal::Lo),
+                (Signal::Lo, State::On) => Some(Signal::Hi),
             },
             Self::Conjunction { name: _, inputs } => {
                 if inputs.iter().all(|(_, signal)| signal == &Signal::Hi) {
@@ -304,7 +315,6 @@ impl super::Solution for DaySolution {
 
         modules.push(Module::Button {
             name: String::from("button"),
-            input: Signal::Lo,
         });
         let modules: HashMap<String, Module> = modules.into_iter().map(|m| (m.name(), m)).collect();
 
@@ -323,24 +333,26 @@ impl super::Solution for DaySolution {
     }
 
     fn solve_part_1(problem: Self::Problem) -> Self::Answer {
-        let no_pulses: Vec<Pulse> = vec!();
+        let no_pulses: Vec<Pulse> = vec![];
         let network = problem;
-        let (_, pulses) =
-            (0..1000)
-            .fold((network, no_pulses), |(network, mut pulses), _| {
-                let (new_network, mut new_pulses) = DaySolution::push_button(network);
-                pulses.append(&mut new_pulses);
-                (new_network, pulses)
-            });
-        let signals: Vec<Signal> =
-            pulses
-            .into_iter()
-            .map(|pulse| pulse.signal)
-            .collect();
+        let n = 1000;
+        let debug = false;
+        let (_, pulses) = (0..n).fold((network, no_pulses), |(network, mut pulses), _| {
+            let (new_network, mut new_pulses) = DaySolution::push_button(network);
+            // debugging
+            if debug
+            {
+                println!("New pulses:");
+                new_pulses.iter().for_each(|p| println!("{} -{:?}-> {}", p.cable.from, p.signal, p.cable.to));
+            }
+
+            pulses.append(&mut new_pulses);
+            (new_network, pulses)
+        });
+        let signals: Vec<Signal> = pulses.into_iter().map(|pulse| pulse.signal).collect();
         let lo_cnt = signals.iter().filter(|&x| x == &Signal::Lo).count();
         let hi_cnt = signals.iter().filter(|&x| x == &Signal::Hi).count();
         Some(lo_cnt * hi_cnt)
-
     }
 
     fn solve_part_2(_problem: Self::Problem) -> Self::Answer {
