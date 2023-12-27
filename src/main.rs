@@ -14,6 +14,9 @@ struct Cli {
     /// Solve problem in test mode
     #[arg(short, long)]
     test: bool,
+    /// Define the level of logging output when running the solution
+    #[arg(short, long)]
+    debug: bool,
 }
 
 use solution::Solution;
@@ -31,6 +34,15 @@ type Day = u8;
 pub enum Mode {
     Test,
     Real,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Logging {
+    Error,
+    Warning,
+    Info,
+    Debug,
+    Trace,
 }
 
 fn main() {
