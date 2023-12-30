@@ -11,7 +11,7 @@ enum Signal {
     Hi,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 enum State {
     On,
     Off,
@@ -19,6 +19,7 @@ enum State {
 
 type Label = String;
 
+#[derive(Debug)]
 enum Module {
     FlipFlop {
         name: Label,
@@ -54,7 +55,7 @@ pub struct Network {
     // hashmap of module names to module definitions
     modules: HashMap<Label, Module>,
     // hashmap of output modules to linked input modules
-    cbl_map: HashMap<Label, HashSet<Label>>,
+    cbl_map: HashMap<Label, Vec<Label>>,
 }
 
 type P = Network;
@@ -63,7 +64,7 @@ pub struct DaySolution(P);
 
 impl DaySolution {
     // parse one input line with relation to module
-    fn parse_one_line_module(line: &str, cbl_map: &HashMap<Label, HashSet<Label>>) -> Module {
+    fn parse_one_line_module(line: &str, cbl_map: &HashMap<Label, Vec<Label>>) -> Module {
         let cables: Vec<Cable> = cbl_map
             .iter()
             .flat_map(|(from, tos)| {
@@ -104,7 +105,7 @@ impl DaySolution {
             .unwrap()
     }
     // parse the input line with relation to cables that connect modules
-    fn parse_one_line_cable(line: &str) -> (Label, HashSet<Label>) {
+    fn parse_one_line_cable(line: &str) -> (Label, Vec<Label>) {
         let parts = line
             .split(" -> ")
             //.map(|s| String::from(s))
@@ -117,7 +118,7 @@ impl DaySolution {
             .map(String::from)
             .unwrap();
         // to
-        let to: HashSet<Label> = re_name
+        let to: Vec<Label> = re_name
             .captures_iter(parts[1])
             .map(|c| c.get(0).unwrap().as_str())
             .map(String::from)
@@ -183,8 +184,29 @@ impl Module {
     /*
     update input memory from modules. this is iportant step of signal consumption
     and transition into excited state updated input signals are used for emission of the new signals
-     */
+    */
     fn update_input(&mut self, from: Label, signal: Signal) {
+        match self {
+            Module::FlipFlop {
+                ref mut state,
+                ref mut input,
+                ..
+            } => {
+                if signal == Signal::Lo {
+                    *state = state.flip();
+                }
+                *input = signal;
+            }
+            Module::Conjunction { ref mut inputs, .. } => {
+                //inputs[&from] = signal;
+                inputs.entry(from).and_modify(|v| *v = signal);
+            }
+            Module::Broadcaster { name: _, input: _ } => (),
+            Module::Button { name: _ } => {
+                unreachable!("Something is wrong! There must be no input for 'Button' module")
+            }
+        }
+        /*
         *self = match self {
             Module::FlipFlop {
                 name,
@@ -214,6 +236,7 @@ impl Module {
                 unreachable!("Something is wrong! There must be no input for 'Button' module")
             }
         };
+        */
     }
 
     /*
@@ -230,8 +253,8 @@ impl Module {
                 input,
             } => match (input, state) {
                 /* state is already updated on previous step, therefore
-                    State On must emit Hi signal,
-                    State Off must emit Lo signal */
+                State On must emit Hi signal,
+                State Off must emit Lo signal */
                 (Signal::Hi, _) => None,
                 (Signal::Lo, State::Off) => Some(Signal::Lo),
                 (Signal::Lo, State::On) => Some(Signal::Hi),
@@ -265,9 +288,17 @@ impl Network {
     }
     /*
     get list of excited modules based on pulses
+    it is a question whether pulses to modules must be combined within one quant of time
     */
     fn excited_modules(&self, pulses: &Vec<Pulse>) -> Vec<Label> {
-        pulses.iter().map(|s| s.cable.to.clone()).collect()
+        let labels: Vec<Label> = pulses
+            .iter()
+            .map(|s| s.cable.to.clone())
+            .collect::<HashSet<String>>()
+            .into_iter()
+            .collect();
+        //labels.sort();
+        labels
     }
     /* in the network configuration for given modules that are defined as ixcited modules,
     issue the set of pulses towards next modules
@@ -304,7 +335,7 @@ impl super::Solution for DaySolution {
     type Problem = P;
 
     fn parse_input_part_1(text_input: String) -> Self::Problem {
-        let mut cbl_map: HashMap<Label, HashSet<Label>> = text_input
+        let mut cbl_map: HashMap<Label, Vec<Label>> = text_input
             .lines()
             .map(DaySolution::parse_one_line_cable)
             .collect();
@@ -321,8 +352,6 @@ impl super::Solution for DaySolution {
         cbl_map.insert(
             String::from("button"),
             vec![String::from("broadcaster")]
-                .into_iter()
-                .collect::<HashSet<Label>>(),
         );
 
         Network { modules, cbl_map }
@@ -335,15 +364,38 @@ impl super::Solution for DaySolution {
     fn solve_part_1(problem: Self::Problem) -> Self::Answer {
         let no_pulses: Vec<Pulse> = vec![];
         let network = problem;
-        let n = 1000;
-        let debug = false;
-        let (_, pulses) = (0..n).fold((network, no_pulses), |(network, mut pulses), _| {
+        let n = 5;
+        let debug = true;
+        let (_, pulses) = (0..n).fold((network, no_pulses), |(network, mut pulses), n| {
             let (new_network, mut new_pulses) = DaySolution::push_button(network);
             // debugging
-            if debug
-            {
-                println!("New pulses:");
-                new_pulses.iter().for_each(|p| println!("{} -{:?}-> {}", p.cable.from, p.signal, p.cable.to));
+            if debug {
+                println!("Step {:>4} pulses:", n + 1);
+                new_pulses.iter().for_each(|p| {
+                    println!("{:<11} -{:?}-> {:>11}", p.cable.from, p.signal, p.cable.to)
+                });
+                new_network
+                    .modules
+                    .iter()
+                    .map(|(_, m)| m)
+                    .filter(|m| match m {
+                        Module::FlipFlop {
+                            name: _,
+                            state: _,
+                            input: _,
+                        } => true,
+                        _ => false,
+                    })
+                    .for_each(|m| println!("{:?}", m));
+                new_network
+                    .modules
+                    .iter()
+                    .map(|(_, m)| m)
+                    .filter(|m| match m {
+                        Module::Conjunction { inputs: _, name: _ } => true,
+                        _ => false,
+                    })
+                    .for_each(|m| println!("{:?}", m));
             }
 
             pulses.append(&mut new_pulses);
@@ -352,6 +404,7 @@ impl super::Solution for DaySolution {
         let signals: Vec<Signal> = pulses.into_iter().map(|pulse| pulse.signal).collect();
         let lo_cnt = signals.iter().filter(|&x| x == &Signal::Lo).count();
         let hi_cnt = signals.iter().filter(|&x| x == &Signal::Hi).count();
+        println!("Pushes count: {n:>4}, low signals: {lo_cnt:>6}, high signals: {hi_cnt:>6}");
         Some(lo_cnt * hi_cnt)
     }
 
