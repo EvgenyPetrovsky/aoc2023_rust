@@ -19,7 +19,7 @@ enum State {
 
 type Label = String;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Module {
     FlipFlop {
         name: Label,
@@ -51,6 +51,7 @@ struct Pulse {
     cable: Cable,
 }
 
+#[derive(Clone)]
 pub struct Network {
     // hashmap of module names to module definitions
     modules: HashMap<Label, Module>,
@@ -127,17 +128,34 @@ impl DaySolution {
         (from, to)
     }
 
-    fn push_button(network: Network) -> (Network, Vec<Pulse>) {
+    fn push_button(network: Network, by_one: bool) -> (Network, Vec<Pulse>) {
         let init: Vec<Pulse> = Self::init_pulse();
         let mut network: Network = network;
         let pulses: Vec<Pulse> = successors(Some(init), |pulses: &Vec<Pulse>| {
             if pulses.len() == 0 {
                 None
             } else {
-                let ems = network.excited_modules(&pulses);
-                network.consume_pulses(pulses.clone());
-                let new_pulses = network.emit_pulses(ems);
-                Some(new_pulses)
+                if by_one {
+                    /*
+                    anogther attempt to implement logic this time assumption is different:
+                    all pulses are processed one by one without combining them inside one quant of time
+                    */
+
+                    let new_pulses: Vec<Pulse> = pulses
+                        .into_iter()
+                        .flat_map(|p| {
+                            let ems = network.excited_modules(&vec![p.clone()]);
+                            network.consume_pulses(vec![p.clone()]);
+                            network.emit_pulses(ems)
+                        })
+                        .collect();
+                    Some(new_pulses)
+                } else {
+                    let ems = network.excited_modules(&pulses);
+                    network.consume_pulses(pulses.clone());
+                    let new_pulses = network.emit_pulses(ems);
+                    Some(new_pulses)
+                }
             }
         })
         .flatten()
@@ -154,6 +172,18 @@ impl DaySolution {
         };
         vec![pulse]
     }
+
+    fn gcd(a: usize, b: usize) -> usize {
+        if b == 0 {
+            a
+        } else {
+            Self::gcd(b, a % b)
+        }
+    }
+    fn lcm(a: usize, b: usize) -> usize {
+        (a * b) / Self::gcd(a, b)
+    }
+
 }
 
 impl State {
@@ -349,10 +379,7 @@ impl super::Solution for DaySolution {
         });
         let modules: HashMap<String, Module> = modules.into_iter().map(|m| (m.name(), m)).collect();
 
-        cbl_map.insert(
-            String::from("button"),
-            vec![String::from("broadcaster")]
-        );
+        cbl_map.insert(String::from("button"), vec![String::from("broadcaster")]);
 
         Network { modules, cbl_map }
     }
@@ -364,10 +391,10 @@ impl super::Solution for DaySolution {
     fn solve_part_1(problem: Self::Problem) -> Self::Answer {
         let no_pulses: Vec<Pulse> = vec![];
         let network = problem;
-        let n = 5;
-        let debug = true;
+        let n = 1000;
+        let debug = false;
         let (_, pulses) = (0..n).fold((network, no_pulses), |(network, mut pulses), n| {
-            let (new_network, mut new_pulses) = DaySolution::push_button(network);
+            let (new_network, mut new_pulses) = DaySolution::push_button(network, true);
             // debugging
             if debug {
                 println!("Step {:>4} pulses:", n + 1);
@@ -408,8 +435,40 @@ impl super::Solution for DaySolution {
         Some(lo_cnt * hi_cnt)
     }
 
-    fn solve_part_2(_problem: Self::Problem) -> Self::Answer {
-        None
+    fn solve_part_2(problem: Self::Problem) -> Self::Answer {
+        let network = problem;
+        let init: HashMap<Label, usize> = HashMap::new();
+        // modules feeding rx: zh
+        // modules feeding zh: xc, th, pd, bp
+
+        // use while loop to avoid overflow
+        let (_, first_pulses) = (0..100_000)
+            .fold((network, init), |(network, mut pulses), cnt: usize| {
+                let (new_network, new_pulses) = DaySolution::push_button(network, true);
+
+                new_pulses
+                    .iter()
+                    .filter(|p| {
+                        p.cable.from == "xc" && p.signal == Signal::Hi ||
+                        p.cable.from == "th" && p.signal == Signal::Hi ||
+                        p.cable.from == "pd" && p.signal == Signal::Hi ||
+                        p.cable.from == "bp" && p.signal == Signal::Hi
+                    })
+                    .for_each(|p| {
+                        if !pulses.contains_key(&p.cable.from) {
+                            pulses.insert(p.cable.from.clone(), cnt+1);
+                        }
+                    });
+                (new_network, pulses)
+
+            });
+
+        let answer = first_pulses
+            .into_iter()
+            .map(|(_, v)| v)
+            .fold(1, |z, x| DaySolution::lcm(z, x));
+
+        Some(answer)
     }
 
     fn show_answer(answer: Self::Answer) -> String {
