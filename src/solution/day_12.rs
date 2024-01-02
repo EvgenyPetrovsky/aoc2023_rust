@@ -103,21 +103,16 @@ impl DaySolution {
         else if rem == init_brk && spr_at_pos == S_U {
             //if debug {println!("rem > 0 && rem == init_brk && spr_at_pos == S_U")};
             if let Some(n) = memory.get(&(pos, idx)) {
+                //println!("** use cache entry [pos:{}, idx:{}] => {}", pos, idx, n);
                 (*n, memory)
             } else {
                 let (n1, m1) =
-                    Self::rev_calculate(spr, brk, pos - 1, idx, rem - 1, req - 1, memory.clone());
-                let (n2, m2) =
-                    Self::rev_calculate(spr, brk, pos - 1, idx, rem, req, memory.clone());
-                let mut memory = memory;
-                memory.insert((pos, idx), n1 + n2);
-                m1.into_iter().for_each(|(k, v)| {
-                    memory.insert(k, v);
-                });
-                m2.into_iter().for_each(|(k, v)| {
-                    memory.insert(k, v);
-                });
-                (n1 + n2, memory)
+                    Self::rev_calculate(spr, brk, pos - 1, idx, rem - 1, req - 1, memory);
+                let (n2, mut m2) =
+                    Self::rev_calculate(spr, brk, pos - 1, idx, rem, req, m1);
+                m2.insert((pos, idx), n1 + n2);
+                //println!(">> add cache entry [pos:{}, idx:{}] => {}", pos, idx, n1+n2);
+                (n1 + n2, m2)
             }
         }
         //if remaining broken springs > 0 and we find W-spring, then = 0
