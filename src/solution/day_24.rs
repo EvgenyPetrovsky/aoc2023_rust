@@ -76,7 +76,10 @@ impl Particle {
         } else {
             let (d, n) = (det_0 as f64, det_m as f64);
             let t = d / n;
-            println!("Collision at time {}", t);
+            println!("Collision at time {} in place({}, {})", t,
+            self.loc.0 as f64 + self.vel.0 as f64 * t,
+            self.loc.1 as f64 + self.vel.1 as f64 * t,
+            );
             Some(t)
         }
 
