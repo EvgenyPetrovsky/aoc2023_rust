@@ -1,11 +1,14 @@
 use rayon::prelude::*;
 use regex::Regex;
+use std::collections::HashMap;
 
 const S_W: u8 = b'.';
 const S_B: u8 = b'#';
 const S_U: u8 = b'?';
 
 type Springs = Vec<u8>;
+// memory is a cache for current positions, number of rem indexes and associated number of solutions
+type Memory = HashMap<(usize, usize), usize>;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Record {
@@ -60,7 +63,8 @@ impl DaySolution {
         brk_idx: usize,
         rem_brk: usize,
         min_req_len: usize,
-    ) -> usize {
+        memory: Memory
+    ) -> (usize, Memory) {
         let (spr, pos, brk, idx, rem, req) = (springs, pos, brokens, brk_idx, rem_brk, min_req_len);
         let init_brk = brk[idx];
         //let debug = false;
@@ -73,23 +77,23 @@ impl DaySolution {
         //let must_go_on = pos > 0;
 
         if pos + 1 < req {
-            0
+            (0, memory)
         } else if pos == 0 && idx == 0 && rem == 1 && (spr_at_pos == S_B || spr_at_pos == S_U) {
             //if debug {println!("pos == 0 && idx == 0 && rem == 1 && (spr_at_pos == S_B || spr_at_pos == S_U)")};
-            1
+            (1, memory)
         } else if pos == 0 && idx == 0 && rem == 0 && (spr_at_pos == S_W || spr_at_pos == S_U) {
             //if debug {println!("pos == 0 && idx == 0 && rem == 0 && (spr_at_pos == S_W || spr_at_pos == S_U)")};
-            1
+            (1, memory)
         }
         //if remaining broken springs > 0 and re reached end of springs
         else if pos == 0 && (idx > 0 || rem > 0) {
             //if debug {println!("pos == 0 && (idx > 0 || rem > 0)")};
-            0
+            (0, memory)
         }
         //if remaining broken springs = 0 and we find B-spring, then = 0
         else if rem == 0 && spr_at_pos == S_B {
             //if debug {println!("rem == 0 && spr_at_pos == S_B")};
-            0
+            (0, memory)
         } else if pos == 0 {
             panic!("non-handled pos == 0 condition")
         }
@@ -98,8 +102,13 @@ impl DaySolution {
         //    - move on to next spring and postpone search
         else if rem == init_brk && spr_at_pos == S_U {
             //if debug {println!("rem > 0 && rem == init_brk && spr_at_pos == S_U")};
-            Self::rev_calculate(spr, brk, pos - 1, idx, rem - 1, req - 1)
-                + Self::rev_calculate(spr, brk, pos - 1, idx, rem, req)
+            let (n1, m1) = Self::rev_calculate(spr, brk, pos - 1, idx, rem - 1, req - 1, memory.clone);
+            let (n2, m2) = Self::rev_calculate(spr, brk, pos - 1, idx, rem, req, memory.clone);
+            let mut memory = memory;
+            memory.insert((pos, brk_idx), n1 + n2);
+            m1.into_iter().for_each(|(k, v)| memory.insert(k, v));
+            m2.into_iter().for_each(|(k, v)| memory.insert(k, v));
+            (n1 + n2, memory)
         }
         //if remaining broken springs > 0 and we find W-spring, then = 0
         else if rem == init_brk && spr_at_pos == S_W {
