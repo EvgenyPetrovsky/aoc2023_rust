@@ -69,13 +69,7 @@ impl DaySolution {
         let init_brk = brk[idx];
         //let debug = false;
         let spr_at_pos = spr[pos];
-        //if debug {println!("spr: {:?}, pos: {}, brk: {:?}, idx: {}, rem: {}, init_brk: {}", &spr, pos, &brk, idx, rem, init_brk)};
         //if remaining broken springs = 0 and rev_brk_idx = 0 and we reached the end of springs, then = 1
-
-        //let must_be_working = rem == 0 || rem == init_brk;
-        //let must_be_broken = rem > 0 || rem < init_brk;
-        //let must_go_on = pos > 0;
-
         if pos + 1 < req {
             (0, memory)
         } else if pos == 0 && idx == 0 && rem == 1 && (spr_at_pos == S_B || spr_at_pos == S_U) {
@@ -166,8 +160,6 @@ impl DaySolution {
     }
 
     fn process_one_record(record: &Record) -> usize {
-        //let rev_springs: Springs = record.springs.clone().into_iter().rev().collect();
-        //let rev_brokens: Vec<usize> = record.brokens.clone().into_iter().rev().collect();
         let init_pos = record.springs.len() - 1;
         let init_brk_idx = record.brokens.len() - 1;
         let rem_brk = record.brokens[init_brk_idx];
@@ -175,7 +167,7 @@ impl DaySolution {
         // minimum required len for all broken springs and spaces between
         let min_req_len: usize = record.brokens.iter().fold(0_usize, |z, x| z + x) + init_brk_idx;
         let empty_memory: Memory = HashMap::new();
-        //Self::rev_calculate(&rev_springs, &rev_brokens, init_pos, init_brk_idx, rem_brk)
+
         let (num_combinations, _) = Self::rev_calculate(
             &record.springs,
             &record.brokens,
@@ -212,13 +204,7 @@ impl super::Solution for DaySolution {
     fn solve_part_1(problem: Self::Problem) -> Self::Answer {
         let answer = problem
             .iter()
-            .enumerate()
-            .map(|(idx, record)| {
-                if (idx + 1) % 50 == 0 {
-                    println!("processing part 1, record {:>3}", idx + 1);
-                };
-                DaySolution::process_one_record(record)
-            })
+            .map(DaySolution::process_one_record)
             .sum();
         Some(answer)
     }
@@ -226,18 +212,7 @@ impl super::Solution for DaySolution {
     fn solve_part_2(problem: Self::Problem) -> Self::Answer {
         let answer = problem
             .par_iter()
-            .enumerate()
-            .map(|(idx, record)| {
-                let v = DaySolution::process_one_record(record);
-                if (idx + 1) % 1 == 0 {
-                    println!(
-                        "processing part 2, record: {:>4}, count: {:>13}",
-                        idx + 1,
-                        v
-                    );
-                };
-                v
-            })
+            .map(DaySolution::process_one_record)
             .sum();
         Some(answer)
     }
