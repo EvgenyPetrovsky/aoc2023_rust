@@ -1,95 +1,113 @@
 use regex::Regex;
+use std::fmt;
 
-const LST:i64 = 200_000_000_000_000;
-const MST:i64 = 400_000_000_000_000;
+const LST: f64 = 200_000_000_000_000.;
+const MST: f64 = 400_000_000_000_000.;
+//const LST: f64 = 7.;
+//const MST: f64 = 27.;
 
-type Time = i64;
+type Time = f64;
 
-type CTime = f64;
+#[derive(Debug, Clone)]
+struct Velocity(f64, f64, f64);
 
-#[derive(Debug)]
-struct Velocity (i64, i64, i64);
+#[derive(Debug, Clone)]
+struct Location(f64, f64, f64);
 
-#[derive(Debug)]
-struct Location (i64, i64, i64);
+#[derive(Debug, Clone)]
+pub struct Particle {
+    loc: Location,
+    vel: Velocity,
+}
 
-#[derive(Debug)]
-pub struct Particle {loc: Location, vel: Velocity}
-
+pub struct Cross {
+    particle_1: Particle,
+    particle_2: Particle,
+    time_1: Time,
+    time_2: Time,
+}
 type P = Vec<Particle>;
 
+impl fmt::Display for Particle {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Particle [{:>3}, {:>3}, {:>3} @ {:>3}, {:>3}, {:>3}]",
+            self.loc.0, self.loc.1, self.loc.2, self.vel.0, self.vel.1, self.vel.2
+        )
+    }
+}
+
 impl Particle {
-    fn location_at(&self, time: Time) -> Location {
+    fn parse(from_str: &str) -> Self {
+        fn to_f64(str: &str) -> f64 {
+            str.parse::<f64>().unwrap()
+        }
+        let re =
+            Regex::new(r#"(-?\d+), +(-?\d+), +(-?\d+) +@ +(-?\d+), +(-?\d+), +(-?\d+)"#).unwrap();
+        re.captures(from_str)
+            .map(|c| {
+                let (_, [x0, y0, z0, dx, dy, dz]) = c.extract();
+                Particle {
+                    loc: Location(to_f64(x0), to_f64(y0), to_f64(z0)),
+                    vel: Velocity(to_f64(dx), to_f64(dy), to_f64(dz)),
+                }
+            })
+            .unwrap()
+    }
+
+    fn location_on_xy_at(&self, time: &Time) -> Location {
         let t = time;
         let Location(x0, y0, z0) = self.loc;
         let Velocity(dx, dy, dz) = self.vel;
         Location(x0 + t * dx, y0 + t * dy, z0 + t * dz)
     }
-    fn parse(from_str: &str) -> Self {
-        fn to_i64(str: &str) -> i64 {
-            str.parse::<i64>().unwrap()
-        }
-        let re = Regex::new(r#"(-?\d+), +(-?\d+), +(-?\d+) +@ +(-?\d+), +(-?\d+), +(-?\d+)"#).unwrap();
-        re.captures(from_str).map(|c| {
-            let(_,[x0, y0, z0, dx, dy, dz]) = c.extract();
-            Particle {
-                loc: Location (to_i64(x0), to_i64(y0), to_i64(z0)),
-                vel: Velocity (to_i64(dx), to_i64(dy), to_i64(dz)),
-            }
-        })
-        .unwrap()
-    }
-    fn crossess_with(&self, other_particle: &Particle) -> bool {
-        unimplemented!()
-    }
 
-    fn when_crossess_on_xyz_with(&self, other_particle: &Particle) -> Option<CTime> {
-        unimplemented!()
-    }
-
-
-    fn crossess_on_xy_with(&self, other_particle: &Particle) -> bool {
-        match self.when_crossess_on_xy_with(other_particle) {
+    fn _crossess_on_xy_with(&self, other_particle: &Particle) -> bool {
+        match self.cross_on_xy_with(other_particle) {
             None => false,
-            _ => true
+            _ => true,
         }
     }
-
-    fn when_crossess_on_xy_with(&self, other_particle: &Particle) -> Option<CTime> {
+    fn cross_on_xy_with(&self, other_particle: &Particle) -> Option<Cross> {
         let that = other_particle;
-        println!("collide {:?} with {:?}", self, that);
-        let a = vec!(
-            self.vel.0, -that.vel.0,
-            self.vel.1, -that.vel.1
-        );
-        let b = vec!(
-            that.loc.0 - self.loc.0,
-            that.loc.1 - self.loc.1
-        );
+        let debug = false;
+        if debug {
+            println!("Collide {} with {}", self, that);
+        }
+        let a = vec![self.vel.0, -that.vel.0, self.vel.1, -that.vel.1];
+        let b = vec![that.loc.0 - self.loc.0, that.loc.1 - self.loc.1];
 
         let det_m = a[0] * a[3] - a[1] * a[2];
         let det_0 = b[0] * a[3] - a[1] * b[1];
-        //let det_1 = a[0] * b[1] - b[0] * a[2];
+        let det_1 = a[0] * b[1] - b[0] * a[2];
 
-        if det_m == 0 {
+        if det_m == 0. {
             None
         } else {
-            let (d, n) = (det_0 as f64, det_m as f64);
-            let t = d / n;
-            println!("Collision at time {} in place({}, {})", t,
-            self.loc.0 as f64 + self.vel.0 as f64 * t,
-            self.loc.1 as f64 + self.vel.1 as f64 * t,
-            );
-            Some(t)
+            let time_1 = det_0 / det_m;
+            let time_2 = det_1 / det_m;
+            if debug {
+                println!(
+                    " - collision in place: ({:>.3}, {:>.3}), at time of p1: {:>.3}, at time of p2: {:>.3}",
+                    self.loc.0 + self.vel.0 * time_1,
+                    self.loc.1 + self.vel.1 * time_1,
+                    time_1,
+                    time_2
+                );
+            }
+            Some(Cross {
+                particle_1: self.clone(),
+                particle_2: other_particle.clone(),
+                time_1,
+                time_2,
+            })
         }
-
     }
 }
 pub struct DaySolution(P);
 
-impl DaySolution {
-
-}
+impl DaySolution {}
 
 /*
     x = -2 * t1 + 19
@@ -141,10 +159,7 @@ impl super::Solution for DaySolution {
     type Problem = P;
 
     fn parse_input_part_1(text_input: String) -> Self::Problem {
-        text_input
-            .lines()
-            .map(Particle::parse)
-            .collect()
+        text_input.lines().map(Particle::parse).collect()
     }
 
     fn parse_input_part_2(_text_input: String) -> Self::Problem {
@@ -152,17 +167,34 @@ impl super::Solution for DaySolution {
     }
 
     fn solve_part_1(problem: Self::Problem) -> Self::Answer {
-        let pi_1 = problem.iter();
-        let answer =
-            pi_1
+        let pi = problem.iter();
+        let pi_1 = pi.clone();
+        let answer = pi_1
             .clone()
             .enumerate()
-            .flat_map(|(idx, p1)|{
-                let pi_2 = pi_1.clone().skip(idx + 1);
-                pi_2.
-                    filter_map(|p2| p1.when_crossess_on_xy_with(p2))
+            .flat_map(|(idx1, p1)| {
+                let pi_2 = pi.clone().enumerate().filter(move |(idx2, _)| *idx2 > idx1);
+                pi_2.clone()
+                    .filter_map(move |(_, p2)| p1.cross_on_xy_with(p2))
             })
-            .filter(|t| (LST as f64) <= *t && *t <= (MST as f64))
+            .filter(
+                |Cross {
+                     particle_1,
+                     particle_2: _,
+                     time_1,
+                     time_2,
+                 }| {
+                    let Location(x, y, _) = particle_1.location_on_xy_at(time_1);
+                    *time_1 > 0. && *time_2 > 0. && LST <= x && x <= MST && LST <= y && y <= MST
+                },
+            )
+            .map(|c| {
+                let Location(x, y, _) = c.particle_1.location_on_xy_at(&c.time_1);
+                println!(
+                    "{} at time 1 {:>.3} & {} at time 2 {:>.3} are crossing the place ({:>.3}, {:>.3})",
+                    c.particle_1, c.time_1, c.particle_2, c.time_2, x, y
+                );
+            })
             .count();
         Some(answer)
     }
