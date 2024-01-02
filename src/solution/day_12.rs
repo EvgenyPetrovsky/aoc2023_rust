@@ -63,7 +63,7 @@ impl DaySolution {
         brk_idx: usize,
         rem_brk: usize,
         min_req_len: usize,
-        memory: Memory
+        memory: Memory,
     ) -> (usize, Memory) {
         let (spr, pos, brk, idx, rem, req) = (springs, pos, brokens, brk_idx, rem_brk, min_req_len);
         let init_brk = brk[idx];
@@ -102,54 +102,64 @@ impl DaySolution {
         //    - move on to next spring and postpone search
         else if rem == init_brk && spr_at_pos == S_U {
             //if debug {println!("rem > 0 && rem == init_brk && spr_at_pos == S_U")};
-            let (n1, m1) = Self::rev_calculate(spr, brk, pos - 1, idx, rem - 1, req - 1, memory.clone);
-            let (n2, m2) = Self::rev_calculate(spr, brk, pos - 1, idx, rem, req, memory.clone);
-            let mut memory = memory;
-            memory.insert((pos, brk_idx), n1 + n2);
-            m1.into_iter().for_each(|(k, v)| memory.insert(k, v));
-            m2.into_iter().for_each(|(k, v)| memory.insert(k, v));
-            (n1 + n2, memory)
+            if let Some(n) = memory.get(&(pos, idx)) {
+                (*n, memory)
+            } else {
+                let (n1, m1) =
+                    Self::rev_calculate(spr, brk, pos - 1, idx, rem - 1, req - 1, memory.clone());
+                let (n2, m2) =
+                    Self::rev_calculate(spr, brk, pos - 1, idx, rem, req, memory.clone());
+                let mut memory = memory;
+                memory.insert((pos, idx), n1 + n2);
+                m1.into_iter().for_each(|(k, v)| {
+                    memory.insert(k, v);
+                });
+                m2.into_iter().for_each(|(k, v)| {
+                    memory.insert(k, v);
+                });
+                (n1 + n2, memory)
+            }
         }
         //if remaining broken springs > 0 and we find W-spring, then = 0
         else if rem == init_brk && spr_at_pos == S_W {
             //if debug {println!("rem > 0 && rem == init_brk && spr_at_pos == S_W")};
-            Self::rev_calculate(spr, brk, pos - 1, idx, rem, req)
+            Self::rev_calculate(spr, brk, pos - 1, idx, rem, req, memory)
         }
         //if remaining broken springs > 0 and we find B-spring, then
         //    - move on
         else if rem == init_brk && spr_at_pos == S_B {
             //if debug {println!("rem > 0 && rem == init_brk && spr_at_pos == S_B")};
-            Self::rev_calculate(spr, brk, pos - 1, idx, rem - 1, req - 1)
+            Self::rev_calculate(spr, brk, pos - 1, idx, rem - 1, req - 1, memory)
         } else if rem == init_brk {
             panic!("non handled rem == init_brk condition")
         }
         // if remaining broken in the index is 0 but next spring is broken then = 0
         else if rem == 0 && spr_at_pos == S_B {
             //if debug {println!("if rem == 0 && spr_at_pos == S_B")};
-            0
+            (0, memory)
         }
         // if remaining broken in the index is 0 but next spring is unknown or working then
         //    - move on by decreasing idx and
         else if rem == 0 && idx > 0 && (spr_at_pos == S_W || spr_at_pos == S_U) {
             //if debug {println!("rem == 0 && idx >  0 && ( spr_at_pos == S_W || spr_at_pos == S_U )")};
-            Self::rev_calculate(spr, brk, pos - 1, idx - 1, brk[idx - 1], req - 1)
+            Self::rev_calculate(spr, brk, pos - 1, idx - 1, brk[idx - 1], req - 1, memory)
         }
         // if remaining broken = 0 and no indexes and current spring is W or U, move on to next
         else if rem == 0 && idx == 0 && (spr_at_pos == S_W || spr_at_pos == S_U) {
             //if debug {println!("rem == 0 && idx == 0 && (spr_at_pos == S_W || spr_at_pos == S_U)")};
-            Self::rev_calculate(spr, brk, pos - 1, idx, rem, req)
+            Self::rev_calculate(spr, brk, pos - 1, idx, rem, req, memory)
         } else if rem == 0 {
             panic!("non handled rem == 0 condition")
         }
         //if remaining broken springs > 0 and we find W-spring, then = 0
         else if rem > 0 && spr_at_pos == S_W {
             //if debug {println!("rem > 0 && rem < init_brk && spr_at_pos == S_W")};
-            0
+            (0, memory)
         }
         //if remaining broken springs > 0 and we find broken or unknown spring then continue
         else if rem > 0 && (spr_at_pos == S_B || spr_at_pos == S_U) {
             //if debug {println!("pos > 0 && rem > 0 && rem != init_brk && (spr_at_pos == S_B || spr_at_pos == S_U)")};
-            Self::rev_calculate(spr, brk, pos - 1, idx, rem - 1, req - 1)
+            Self::rev_calculate(spr, brk, pos - 1, idx, rem - 1, req - 1, memory)
         } else if rem > 0 {
             panic!("non handled rem > 0 condition")
         } else {
@@ -169,15 +179,18 @@ impl DaySolution {
 
         // minimum required len for all broken springs and spaces between
         let min_req_len: usize = record.brokens.iter().fold(0_usize, |z, x| z + x) + init_brk_idx;
+        let empty_memory: Memory = HashMap::new();
         //Self::rev_calculate(&rev_springs, &rev_brokens, init_pos, init_brk_idx, rem_brk)
-        Self::rev_calculate(
+        let (num_combinations, _) = Self::rev_calculate(
             &record.springs,
             &record.brokens,
             init_pos,
             init_brk_idx,
             rem_brk,
             min_req_len,
-        )
+            empty_memory,
+        );
+        num_combinations
     }
 }
 
@@ -295,6 +308,14 @@ mod tests {
         assert_eq!(
             DS::process_one_record(&DS::parse_one_line("?#.??????#??#?#?#?#? 1,1,15")),
             1_usize
+        );
+    }
+
+    #[test]
+    fn process_one_heavy_record_part_2() {
+        assert_eq!(
+            DS::process_one_record(&DS::parse_one_line_part_2(".?????????? 2,2")),
+            111063614
         );
     }
 
