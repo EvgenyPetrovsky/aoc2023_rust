@@ -50,7 +50,7 @@ impl DaySolution {
             .collect()
     }
     // find next number in series
-    fn find_next_number(acc: Number, series: &Series) -> Number {
+    pub fn find_next_number(acc: Number, series: &Series) -> Number {
         /*
         differentiate the series
           if it becomes 0-series then return 0
