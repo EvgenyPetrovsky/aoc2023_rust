@@ -24,8 +24,6 @@ pub struct HikingMap {
 type Distance = usize;
 type LongestHikes = HashMap<Location, Distance>;
 
-
-
 type P = HikingMap;
 
 pub struct DaySolution(P);
@@ -59,12 +57,25 @@ impl Path {
         let path_len = self.0.len();
         let hist_len = history.get(&location).unwrap_or(&0);
         path_len > *hist_len
-
     }
-
 }
 
 impl HikingMap {
+
+    // find location of the start tile
+    fn find_start_location(&self) -> Location {
+        self.tiles.iter().enumerate().flat_map(|(r, tiles)| {
+            tiles.iter().enumerate().filter_map(move |(c, tile)| {
+                if tile == &TILE_START {
+                    Some((r, c))
+                } else {
+                    None
+                }
+            })
+        })
+        .nth(0)
+        .unwrap()
+    }
 
     // all locations, but validated for map bounds
     fn adjacent_locations(&self, of: &Location) -> Vec<Location> {
@@ -77,22 +88,32 @@ impl HikingMap {
         let (r1, c1) = to.clone();
         let tile = self.tiles[r1][c1];
         // we must not come to start (that is also checked by visited locations od path)
-        if tile == TILE_START {false}
+        if tile == TILE_START {
+            false
+        }
         // we must not move to forest tile
-        else if tile == TILE_TREES {false}
+        else if tile == TILE_TREES {
+            false
+        }
         // we must not climb icy slopes
-        else if tile == TILE_SL_RT && c1 < c0 {false}
-        else if tile == TILE_SL_LT && c1 > c0 {false}
-        else if tile == TILE_SL_UP && r1 > r0 {false}
-        else if tile == TILE_SL_DN && r1 < r0 {false}
-        else {true}
+        else if tile == TILE_SL_RT && c1 < c0 {
+            false
+        } else if tile == TILE_SL_LT && c1 > c0 {
+            false
+        } else if tile == TILE_SL_UP && r1 > r0 {
+            false
+        } else if tile == TILE_SL_DN && r1 < r0 {
+            false
+        } else {
+            true
+        }
     }
 
     // check if you are on the slope and must slide
     fn stand_on_slope(&self, location: &Location) -> bool {
         match self.tiles[location.0][location.1] {
-            TILE_SL_DN | TILE_SL_UP| TILE_SL_RT| TILE_SL_LT => true,
-            _ => false
+            TILE_SL_DN | TILE_SL_UP | TILE_SL_RT | TILE_SL_LT => true,
+            _ => false,
         }
     }
 
@@ -104,15 +125,13 @@ impl HikingMap {
 
         match tile {
             TILE_TRAIL => (r, c),
-            TILE_SL_DN => (r+1, c+0),
-            TILE_SL_UP => (r-1, c+0),
-            TILE_SL_RT => (r+0, c+1),
-            TILE_SL_LT => (r+0, c-1),
-            _ => panic!("unexpected tile {} in location ({}, {})", tile, r, c)
+            TILE_SL_DN => (r + 1, c + 0),
+            TILE_SL_UP => (r - 1, c + 0),
+            TILE_SL_RT => (r + 0, c + 1),
+            TILE_SL_LT => (r + 0, c - 1),
+            _ => panic!("unexpected tile {} in location ({}, {})", tile, r, c),
         }
     }
-
-
 }
 
 impl super::Solution for DaySolution {
@@ -131,7 +150,7 @@ impl super::Solution for DaySolution {
         } else {
             (tiles.len(), tiles[0].len())
         };
-        HikingMap{tiles, size}
+        HikingMap { tiles, size }
     }
 
     fn parse_input_part_2(_text_input: String) -> Self::Problem {
@@ -139,7 +158,6 @@ impl super::Solution for DaySolution {
     }
 
     fn solve_part_1(_problem: Self::Problem) -> Self::Answer {
-
         /*
         initial path consists only from start.
         cycle for every path in consideration:
