@@ -141,7 +141,7 @@ impl super::Solution for DaySolution {
     fn solve_part_1(_problem: Self::Problem) -> Self::Answer {
 
         /*
-        initial path from start.
+        initial path consists only from start.
         cycle for every path in consideration:
             if you stand on the slope slide from it to the next tile
             else discover all valid adjacent moves for current position (last location of path)
