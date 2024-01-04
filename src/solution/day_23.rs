@@ -1,10 +1,9 @@
-use std::{collections::HashMap, thread::panicking};
+use std::{cmp::Ordering, collections::HashMap};
 
-const TILE_START: u8 = b'S';
 const TILE_TRAIL: u8 = b'.';
 const TILE_TREES: u8 = b'#';
-const TILE_SL_LT: u8 = b'>';
-const TILE_SL_RT: u8 = b'<';
+const TILE_SL_LT: u8 = b'<';
+const TILE_SL_RT: u8 = b'>';
 const TILE_SL_UP: u8 = b'^';
 const TILE_SL_DN: u8 = b'v';
 
@@ -31,13 +30,16 @@ pub struct DaySolution(P);
 impl Path {
     fn current_location(&self) -> Location {
         // last element of the path
-        unimplemented!()
+        self.0.last().unwrap().clone()
     }
 
     fn visited_location(&self, location: &Location) -> bool {
-        unimplemented!()
+        self.0.contains(location)
     }
 
+    fn length(&self) -> Distance {
+        self.0.len()
+    }
     /*
     extend the path to new location
 
@@ -52,34 +54,48 @@ impl Path {
 
     // if this path is longer than anything registered in the history
     // or it is not in the history at all
-    fn is_longest_path(&self, history: LongestHikes) -> bool {
+    fn compare_to_longest(&self, history: &LongestHikes) -> Ordering {
         let location = self.current_location();
         let path_len = self.0.len();
         let hist_len = history.get(&location).unwrap_or(&0);
-        path_len > *hist_len
+        path_len.cmp(hist_len)
     }
 }
 
 impl HikingMap {
-
     // find location of the start tile
     fn find_start_location(&self) -> Location {
-        self.tiles.iter().enumerate().flat_map(|(r, tiles)| {
-            tiles.iter().enumerate().filter_map(move |(c, tile)| {
-                if tile == &TILE_START {
-                    Some((r, c))
-                } else {
-                    None
-                }
-            })
-        })
-        .nth(0)
-        .unwrap()
+        let r = 0;
+        let c = self.tiles[r]
+            .iter()
+            .position(|tile| tile == &TILE_TRAIL)
+            .unwrap();
+        (r, c)
+    }
+
+    // find location of the start tile
+    fn find_finish_location(&self) -> Location {
+        let (rows, _) = self.size;
+        let r = rows - 1;
+        let c = self.tiles[r]
+            .iter()
+            .position(|tile| tile == &TILE_TRAIL)
+            .unwrap();
+        (r, c)
     }
 
     // all locations, but validated for map bounds
     fn adjacent_locations(&self, of: &Location) -> Vec<Location> {
-        unimplemented!()
+        let (rows, cols) = self.size;
+        let (r, c) = *of;
+        let (rows, cols, r, c) = (rows as i32, cols as i32, r as i32, c as i32);
+
+        [(1, 0), (-1, 0), (0, 1), (0, -1)]
+            .into_iter()
+            .map(|(dr, dc)| (r + dr, c + dc))
+            .filter(|(r, c)| 0 <= *r && *r < rows && 0 <= *c && *c < cols)
+            .map(|(r, c)| (r as usize, c as usize))
+            .collect()
     }
 
     // check if move can be done 'from' one location 'to' another
@@ -88,23 +104,23 @@ impl HikingMap {
         let (r1, c1) = to.clone();
         let tile = self.tiles[r1][c1];
         // we must not come to start (that is also checked by visited locations od path)
-        if tile == TILE_START {
-            false
+        if tile == TILE_TRAIL {
+            true
         }
         // we must not move to forest tile
         else if tile == TILE_TREES {
             false
         }
         // we must not climb icy slopes
-        else if tile == TILE_SL_RT && c1 < c0 {
+        else if tile == TILE_SL_RT && c1 < c0
+            || tile == TILE_SL_LT && c1 > c0
+            || tile == TILE_SL_UP && r1 > r0
+            || tile == TILE_SL_DN && r1 < r0
+        {
             false
-        } else if tile == TILE_SL_LT && c1 > c0 {
-            false
-        } else if tile == TILE_SL_UP && r1 > r0 {
-            false
-        } else if tile == TILE_SL_DN && r1 < r0 {
-            false
-        } else {
+        }
+        // all other slope combinations are valid
+        else {
             true
         }
     }
@@ -124,7 +140,6 @@ impl HikingMap {
         let tile = self.tiles[r][c];
 
         match tile {
-            TILE_TRAIL => (r, c),
             TILE_SL_DN => (r + 1, c + 0),
             TILE_SL_UP => (r - 1, c + 0),
             TILE_SL_RT => (r + 0, c + 1),
@@ -137,7 +152,7 @@ impl HikingMap {
 impl super::Solution for DaySolution {
     const DAY_NUMBER: u8 = 23;
 
-    type Answer = Option<i32>;
+    type Answer = Option<usize>;
     type Problem = P;
 
     fn parse_input_part_1(text_input: String) -> Self::Problem {
@@ -153,11 +168,11 @@ impl super::Solution for DaySolution {
         HikingMap { tiles, size }
     }
 
-    fn parse_input_part_2(_text_input: String) -> Self::Problem {
-        Self::parse_input_part_1(_text_input)
+    fn parse_input_part_2(text_input: String) -> Self::Problem {
+        Self::parse_input_part_1(text_input)
     }
 
-    fn solve_part_1(_problem: Self::Problem) -> Self::Answer {
+    fn solve_part_1(problem: Self::Problem) -> Self::Answer {
         /*
         initial path consists only from start.
         cycle for every path in consideration:
@@ -168,12 +183,131 @@ impl super::Solution for DaySolution {
             if this path is longer, or no history is found then update the history of longest hikes keep moving for this path
             repeat the iteration for all paths
         */
+        let start: Location = problem.find_start_location();
+        let finish: Location = problem.find_finish_location();
+        //println!("Start: {:?}. Finish: {:?}", start, finish);
+        let init_path: Path = Path(vec![start]);
+        let history: LongestHikes = HashMap::new();
 
-        None
+        fn iterate(hmap: &HikingMap, history: LongestHikes, paths: Vec<Path>) -> LongestHikes {
+            let init_new_paths: Vec<Path> = Vec::new();
+            let (new_history, new_paths) =
+                paths
+                    .iter()
+                    .fold((history, init_new_paths), |(history, nps), p| {
+                        let location = p.current_location();
+                        let new_locations: Vec<Location> = if hmap.stand_on_slope(&location) {
+                            vec![hmap.slide_from_slope(&location)]
+                        } else {
+                            hmap.adjacent_locations(&location)
+                                .iter()
+                                .filter(|to| hmap.valid_move(&location, to))
+                                .filter(|location| !p.visited_location(location))
+                                .map(|l| l.clone())
+                                .collect()
+                        };
+                        let new_paths: Vec<Path> = new_locations
+                            .into_iter()
+                            .map(|location| p.extend_to(&location))
+                            .filter(|np| np.compare_to_longest(&history) == Ordering::Greater)
+                            .collect();
+
+                        let mut new_history = history;
+                        new_paths.iter().for_each(|p| {
+                            new_history.insert(p.current_location(), p.length());
+                        });
+
+                        let mut new_paths = new_paths
+                            .into_iter()
+                            .filter(|p| p.compare_to_longest(&new_history) == Ordering::Equal)
+                            .collect::<Vec<Path>>();
+
+                        new_paths.append(&mut nps.clone());
+
+                        (new_history, new_paths)
+                    });
+            /*
+            println!(
+                "Number of new paths: {}, number of history records: {}",
+                new_paths.len(),
+                new_history.len()
+            );
+            */
+            if new_paths.len() == 0 {
+                //println!("History:\n{:?}", &new_history);
+                new_history
+            } else {
+                iterate(hmap, new_history, new_paths)
+            }
+        }
+
+        let longest_hikes = iterate(&problem, history, vec![init_path]);
+
+        //let answer = longest_hikes.get(&finish).map(|v| *v).unwrap();
+        longest_hikes.get(&finish).map(|answer| *answer - 1)
     }
 
-    fn solve_part_2(_problem: Self::Problem) -> Self::Answer {
-        None
+    fn solve_part_2(problem: Self::Problem) -> Self::Answer {
+        let start: Location = problem.find_start_location();
+        let finish: Location = problem.find_finish_location();
+        //println!("Start: {:?}. Finish: {:?}", start, finish);
+        let init_path: Path = Path(vec![start]);
+        let history: LongestHikes = HashMap::new();
+
+        fn iterate(hmap: &HikingMap, history: LongestHikes, paths: Vec<Path>) -> LongestHikes {
+            let init_new_paths: Vec<Path> = Vec::new();
+            let (new_history, new_paths) =
+                paths
+                    .iter()
+                    .fold((history, init_new_paths), |(history, nps), p| {
+                        let location = p.current_location();
+                        // simplified locations control - accept all slopes, do not slide
+                        let new_locations: Vec<Location> = hmap
+                            .adjacent_locations(&location)
+                            .iter()
+                            .filter(|to| hmap.tiles[to.0][to.1] != TILE_TREES)
+                            .filter(|location| !p.visited_location(location))
+                            .map(|l| l.clone())
+                            .collect();
+                        let new_paths: Vec<Path> = new_locations
+                            .into_iter()
+                            .map(|location| p.extend_to(&location))
+                            .filter(|np| np.compare_to_longest(&history) == Ordering::Greater)
+                            .collect();
+
+                        let mut new_history = history;
+                        new_paths.iter().for_each(|p| {
+                            new_history.insert(p.current_location(), p.length());
+                        });
+
+                        let mut new_paths = new_paths
+                            .into_iter()
+                            .filter(|p| p.compare_to_longest(&new_history) == Ordering::Equal)
+                            .collect::<Vec<Path>>();
+
+                        new_paths.append(&mut nps.clone());
+
+                        (new_history, new_paths)
+                    });
+            /*
+            println!(
+                "Number of new paths: {}, number of history records: {}",
+                new_paths.len(),
+                new_history.len()
+            );
+            */
+            if new_paths.len() == 0 {
+                //println!("History:\n{:?}", &new_history);
+                new_history
+            } else {
+                iterate(hmap, new_history, new_paths)
+            }
+        }
+
+        let longest_hikes = iterate(&problem, history, vec![init_path]);
+
+        //let answer = longest_hikes.get(&finish).map(|v| *v).unwrap();
+        longest_hikes.get(&finish).map(|answer| *answer - 1)
     }
 
     fn show_answer(answer: Self::Answer) -> String {
