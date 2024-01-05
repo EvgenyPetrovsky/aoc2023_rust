@@ -259,53 +259,40 @@ impl super::Solution for DaySolution {
         let init_path: Path = Path(vec![start]);
         let history: LongestHikes = HashMap::new();
 
-        fn iterate(hmap: &HikingMap, history: LongestHikes, paths: Vec<Path>) -> LongestHikes {
+        fn iterate(hmap: &HikingMap, history: LongestHikes, path: Path) -> LongestHikes {
+            /*
+            BFS does not work, let's try DFS
+            */
 
-            let init_new_paths: Vec<Path> = Vec::new();
+            // first update the history
+            let mut new_history = history;
 
-            let (new_history, new_paths) =
-                paths
-                    .iter()
-                    .fold((history, init_new_paths), |(history, nps), p| {
-                        let location = p.current_location();
-                        let mut new_paths: Vec<Path> = hmap
-                            .adjacent_locations(&location)
-                            .iter()
-                            // simplified locations control - accept all slopes, do not slide
-                            .filter(|to| hmap.tile(to) != TILE_TREES)
-                            .filter(|location| !p.visited_location(location))
-                            .map(|location| p.extend_to(&location))
-                            //.filter(|np| np.compare_to_longest(&history) == Ordering::Greater)
-                            .collect();
-
-                        let mut new_history = history;
-
-                        new_paths.iter().for_each(|p| {
-                            if p.compare_to_longest(&new_history) == Ordering::Greater {
-                                new_history.insert(p.current_location(), p.length());
-                            }
-                        });
-
-                        new_paths.append(&mut nps.clone());
-
-                        (new_history, new_paths)
-                    });
-
-            println!(
-                "Number of new paths: {}, number of history records: {}",
-                new_paths.len(),
-                new_history.len()
-            );
-
-            if new_paths.len() == 0 {
-                //println!("History:\n{:?}", &new_history);
-                new_history
-            } else {
-                iterate(hmap, new_history, new_paths)
+            if path.compare_to_longest(&new_history) == Ordering::Greater {
+                new_history.insert(path.current_location(), path.length());
             }
+
+            // extend paths from current location
+            let location = path.current_location();
+            let new_paths: Vec<Path> = hmap
+                .adjacent_locations(&location)
+                .iter()
+                .filter(|to| hmap.tile(to) != TILE_TREES)
+                .filter(|location| !path.visited_location(location))
+                .map(|location| path.extend_to(&location))
+                .collect();
+
+            // calculate further for each path 1 after 1 updating history
+            let new_history: LongestHikes = new_paths
+                .into_iter()
+                .fold(new_history, | history, path| {
+                    iterate(hmap, history, path)
+                });
+
+            new_history
+
         }
 
-        let longest_hikes = iterate(&problem, history, vec![init_path]);
+        let longest_hikes = iterate(&problem, history, init_path);
 
         //let answer = longest_hikes.get(&finish).map(|v| *v).unwrap();
         longest_hikes.get(&finish).map(|answer| *answer - 1)
