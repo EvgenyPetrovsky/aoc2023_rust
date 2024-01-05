@@ -1,4 +1,7 @@
-use std::{cmp::Ordering, collections::HashMap};
+use std::{
+    cmp::Ordering,
+    collections::{HashMap, HashSet},
+};
 
 const TILE_TRAIL: u8 = b'.';
 const TILE_TREES: u8 = b'#';
@@ -13,7 +16,10 @@ type Tile = u8;
 type Location = (usize, usize);
 
 #[derive(Clone)]
-struct Path(Vec<Location>);
+struct Path {
+    head: Location,
+    trace: HashSet<u32>,
+}
 
 pub struct HikingMap {
     tiles: Vec<Vec<Tile>>,
@@ -25,20 +31,111 @@ type LongestHikes = HashMap<Location, Distance>;
 
 type P = HikingMap;
 
+struct Graph {
+    v: HashSet<Vertex>,
+    al: HashMap<Vertex, HashSet<Edge>>,
+}
+
+#[derive(Clone, Hash, PartialEq, Eq)]
+struct Edge {
+    to: Vertex,
+    weight: usize,
+}
+
+#[derive(Clone, Hash, PartialEq, Eq)]
+struct Vertex {
+    location: Location,
+}
+
 pub struct DaySolution(P);
 
+impl Graph {
+
+    fn new() -> Self {
+        Self {v: HashSet::new(), al: HashMap::new()}
+    }
+
+    fn from_maze(maze: HikingMap) -> Self {
+        fn valid_locations(maze: &HikingMap, path: &Path) -> Vec<Location> {
+            let location = path.current_location();
+            maze.adjacent_locations(&location)
+                .into_iter()
+                .filter(|l| maze.tile(l) != TILE_TREES)
+                .filter(|l| !path.visited_location(l))
+                .collect()
+        }
+        // extends path until next edge
+        fn walk_the_edge(maze: &HikingMap, partial_path: Path) -> Path {
+            let location = partial_path.current_location();
+            let nls: Vec<Location> = valid_locations(maze, &partial_path);
+            if nls.len() > 1 {
+                partial_path
+            } else {
+                let new_location: Location = nls[0];
+                walk_the_edge(maze, partial_path.extend_to(&new_location))
+            }
+        }
+        // processes vertices
+        fn iterate(maze: &HikingMap, graph: Graph, vertex: &Vertex) -> Graph {
+
+            let init_path = Path::new(&vertex.location);
+
+            valid_locations(maze, &init_path)
+                .iter()
+                .fold(graph, |graph, location| {
+                    let full_path = walk_the_edge(maze, init_path.extend_to(location));
+
+                    let new_vertex = Vertex {
+                        location: full_path.current_location(),
+                    };
+                    let new_edge = Edge {
+                        to: new_vertex.clone(),
+                        weight: full_path.length(),
+                    };
+                    let mut new_graph = graph;
+                    new_graph
+                        .al
+                        .entry(vertex.clone())
+                        .and_modify(|es| {es.insert(new_edge.clone());} )
+                        .or_insert(HashSet::from([new_edge.clone()]));
+
+                    if new_graph.v.contains(&new_vertex) {
+                        new_graph
+                    } else {
+                        new_graph.v.insert(new_vertex.clone());
+                        iterate(maze, new_graph, &new_vertex)
+                    }
+                })
+        }
+        iterate(&maze, Self::new(), &Vertex { location: maze.find_start_location() })
+    }
+}
+
 impl Path {
+    fn new(start_location: &Location) -> Self {
+        Path {
+            head: start_location.clone(),
+            trace: HashSet::new(),
+        }
+        .extend_to(start_location)
+    }
+
+    fn location_to_trace_seg(location: &Location) -> u32 {
+        let (r, c) = location;
+        *r as u32 * 1000 + *c as u32
+    }
     fn current_location(&self) -> Location {
         // last element of the path
-        self.0.last().unwrap().clone()
+        self.head
     }
 
     fn visited_location(&self, location: &Location) -> bool {
-        self.0.contains(location)
+        let trace_seg = Self::location_to_trace_seg(location);
+        self.trace.contains(&trace_seg)
     }
 
     fn length(&self) -> Distance {
-        self.0.len()
+        self.trace.len()
     }
     /*
     extend the path to new location
@@ -47,16 +144,21 @@ impl Path {
     those checks must be done before
     */
     fn extend_to(&self, location: &Location) -> Self {
-        let mut new_path: Self = self.clone();
-        new_path.0.push(location.clone());
-        new_path
+        let mut new_trace = self.trace.clone();
+        let new_head = location.clone();
+        let new_seg = Self::location_to_trace_seg(location);
+        new_trace.insert(new_seg);
+        Path {
+            head: new_head,
+            trace: new_trace,
+        }
     }
 
     // if this path is longer than anything registered in the history
     // or it is not in the history at all
     fn compare_to_longest(&self, history: &LongestHikes) -> Ordering {
         let location = self.current_location();
-        let path_len = self.0.len();
+        let path_len = self.trace.len();
         let hist_len = history.get(&location).unwrap_or(&0);
         path_len.cmp(hist_len)
     }
@@ -75,6 +177,7 @@ impl HikingMap {
 
     // find location of the start tile
     fn find_finish_location(&self) -> Location {
+        /*
         let (rows, _) = self.size;
         let r = rows - 1;
         let c = self.tiles[r]
@@ -82,6 +185,8 @@ impl HikingMap {
             .position(|tile| tile == &TILE_TRAIL)
             .unwrap();
         (r, c)
+        */
+        (135, 123)
     }
 
     // all locations, but validated for map bounds
@@ -191,7 +296,7 @@ impl super::Solution for DaySolution {
         let start: Location = problem.find_start_location();
         let finish: Location = problem.find_finish_location();
         //println!("Start: {:?}. Finish: {:?}", start, finish);
-        let init_path: Path = Path(vec![start]);
+        let init_path: Path = Path::new(&start);
         let history: LongestHikes = HashMap::new();
 
         fn iterate(hmap: &HikingMap, history: LongestHikes, paths: Vec<Path>) -> LongestHikes {
@@ -256,25 +361,23 @@ impl super::Solution for DaySolution {
         let start: Location = problem.find_start_location();
         let finish: Location = problem.find_finish_location();
         //println!("Start: {:?}. Finish: {:?}", start, finish);
-        let init_path: Path = Path(vec![start]);
-        let history: LongestHikes = HashMap::new();
+        let init_path: Path = Path::new(&start);
 
-        fn iterate(hmap: &HikingMap, history: LongestHikes, path: Path, finish: &Location) -> LongestHikes {
+        fn iterate(hmap: &HikingMap, history: usize, path: Path, finish: &Location) -> usize {
             /*
             BFS does not work, let's try DFS
             */
 
             let location = path.current_location();
+            let p_length = path.length();
 
             // first update the history
-            let mut new_history = history;
 
-            if path.compare_to_longest(&new_history) == Ordering::Greater {
-                let length = path.length();
-                if &location == finish {
-                    println!("Update length for finish location. New value: {}", length);
+            if &location == finish {
+                if p_length > history {
+                    println!("Reached finish location. Path length: {}", p_length + 105);
                 }
-                new_history.insert(path.current_location(), length);
+                return history.max(p_length + 105);
             }
 
             // extend paths from current location
@@ -287,20 +390,17 @@ impl super::Solution for DaySolution {
                 .collect();
 
             // calculate further for each path 1 after 1 updating history
-            let new_history: LongestHikes = new_paths
-                .into_iter()
-                .fold(new_history, | history, path| {
-                    iterate(hmap, history, path, finish)
-                });
+            let new_history: usize = new_paths.into_iter().fold(0, |history, path| {
+                iterate(hmap, history, path, finish).max(history)
+            });
 
             new_history
-
         }
 
-        let longest_hikes = iterate(&problem, history, init_path, &finish);
+        let longest_hike = iterate(&problem, 0, init_path, &finish);
 
         //let answer = longest_hikes.get(&finish).map(|v| *v).unwrap();
-        longest_hikes.get(&finish).map(|answer| *answer - 1)
+        Some(longest_hike - 1)
     }
 
     fn show_answer(answer: Self::Answer) -> String {
