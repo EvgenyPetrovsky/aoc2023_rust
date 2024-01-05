@@ -259,20 +259,25 @@ impl super::Solution for DaySolution {
         let init_path: Path = Path(vec![start]);
         let history: LongestHikes = HashMap::new();
 
-        fn iterate(hmap: &HikingMap, history: LongestHikes, path: Path) -> LongestHikes {
+        fn iterate(hmap: &HikingMap, history: LongestHikes, path: Path, finish: &Location) -> LongestHikes {
             /*
             BFS does not work, let's try DFS
             */
+
+            let location = path.current_location();
 
             // first update the history
             let mut new_history = history;
 
             if path.compare_to_longest(&new_history) == Ordering::Greater {
-                new_history.insert(path.current_location(), path.length());
+                let length = path.length();
+                if &location == finish {
+                    println!("Update length for finish location. New value: {}", length);
+                }
+                new_history.insert(path.current_location(), length);
             }
 
             // extend paths from current location
-            let location = path.current_location();
             let new_paths: Vec<Path> = hmap
                 .adjacent_locations(&location)
                 .iter()
@@ -285,14 +290,14 @@ impl super::Solution for DaySolution {
             let new_history: LongestHikes = new_paths
                 .into_iter()
                 .fold(new_history, | history, path| {
-                    iterate(hmap, history, path)
+                    iterate(hmap, history, path, finish)
                 });
 
             new_history
 
         }
 
-        let longest_hikes = iterate(&problem, history, init_path);
+        let longest_hikes = iterate(&problem, history, init_path, &finish);
 
         //let answer = longest_hikes.get(&finish).map(|v| *v).unwrap();
         longest_hikes.get(&finish).map(|answer| *answer - 1)
