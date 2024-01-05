@@ -102,7 +102,7 @@ impl HikingMap {
     fn valid_move(&self, from: &Location, to: &Location) -> bool {
         let (r0, c0) = from.clone();
         let (r1, c1) = to.clone();
-        let tile = self.tiles[r1][c1];
+        let tile = self.tile(to);
         // we must not come to start (that is also checked by visited locations od path)
         if tile == TILE_TRAIL {
             true
@@ -127,7 +127,7 @@ impl HikingMap {
 
     // check if you are on the slope and must slide
     fn stand_on_slope(&self, location: &Location) -> bool {
-        match self.tiles[location.0][location.1] {
+        match self.tile(location) {
             TILE_SL_DN | TILE_SL_UP | TILE_SL_RT | TILE_SL_LT => true,
             _ => false,
         }
@@ -137,7 +137,7 @@ impl HikingMap {
     // it must be BAD function because it doesn't register locations in the path!
     fn slide_from_slope(&self, location: &Location) -> Location {
         let (r, c) = (location.0, location.1);
-        let tile = self.tiles[r][c];
+        let tile = self.tile(location);
 
         match tile {
             TILE_SL_DN => (r + 1, c + 0),
@@ -146,6 +146,11 @@ impl HikingMap {
             TILE_SL_LT => (r + 0, c - 1),
             _ => panic!("unexpected tile {} in location ({}, {})", tile, r, c),
         }
+    }
+
+    fn tile(&self, location: &Location) -> Tile {
+        let (r, c) = location;
+        self.tiles[*r][*c]
     }
 }
 
@@ -255,47 +260,43 @@ impl super::Solution for DaySolution {
         let history: LongestHikes = HashMap::new();
 
         fn iterate(hmap: &HikingMap, history: LongestHikes, paths: Vec<Path>) -> LongestHikes {
+
             let init_new_paths: Vec<Path> = Vec::new();
+
             let (new_history, new_paths) =
                 paths
                     .iter()
                     .fold((history, init_new_paths), |(history, nps), p| {
                         let location = p.current_location();
-                        // simplified locations control - accept all slopes, do not slide
-                        let new_locations: Vec<Location> = hmap
+                        let mut new_paths: Vec<Path> = hmap
                             .adjacent_locations(&location)
                             .iter()
-                            .filter(|to| hmap.tiles[to.0][to.1] != TILE_TREES)
+                            // simplified locations control - accept all slopes, do not slide
+                            .filter(|to| hmap.tile(to) != TILE_TREES)
                             .filter(|location| !p.visited_location(location))
-                            .map(|l| l.clone())
-                            .collect();
-                        let new_paths: Vec<Path> = new_locations
-                            .into_iter()
                             .map(|location| p.extend_to(&location))
-                            .filter(|np| np.compare_to_longest(&history) == Ordering::Greater)
+                            //.filter(|np| np.compare_to_longest(&history) == Ordering::Greater)
                             .collect();
 
                         let mut new_history = history;
-                        new_paths.iter().for_each(|p| {
-                            new_history.insert(p.current_location(), p.length());
-                        });
 
-                        let mut new_paths = new_paths
-                            .into_iter()
-                            .filter(|p| p.compare_to_longest(&new_history) == Ordering::Equal)
-                            .collect::<Vec<Path>>();
+                        new_paths.iter().for_each(|p| {
+                            if p.compare_to_longest(&new_history) == Ordering::Greater {
+                                new_history.insert(p.current_location(), p.length());
+                            }
+                        });
 
                         new_paths.append(&mut nps.clone());
 
                         (new_history, new_paths)
                     });
-            /*
+
             println!(
                 "Number of new paths: {}, number of history records: {}",
                 new_paths.len(),
                 new_history.len()
             );
-            */
+
             if new_paths.len() == 0 {
                 //println!("History:\n{:?}", &new_history);
                 new_history
