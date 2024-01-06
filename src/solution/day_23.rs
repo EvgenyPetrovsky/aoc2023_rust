@@ -119,7 +119,7 @@ impl Graph {
         iterate(&maze, Self::new(), &Vertex { location: maze.find_start_location() })
     }
 
-    fn to_graphviz(&self) {
+    fn _to_graphviz(&self) {
         println!("digraph G {{");
         println!("  node [shape=box];");
         println!("  graph [defaultdist=100];");
@@ -391,7 +391,7 @@ impl super::Solution for DaySolution {
         let graph = Graph::from_maze(problem);
 
         // my beutiful graph
-        //graph.to_graphviz();
+        //_graph.to_graphviz();
 
         fn dfs(graph: &Graph, goal: &Location, path: Path, acc_length: usize) -> usize {
             let location = &path.current_location();
