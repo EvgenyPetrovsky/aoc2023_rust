@@ -118,6 +118,26 @@ impl Graph {
         }
         iterate(&maze, Self::new(), &Vertex { location: maze.find_start_location() })
     }
+
+    fn to_graphviz(&self) {
+        println!("digraph G {{");
+        println!("  node [shape=box];");
+        println!("  graph [defaultdist=100];");
+
+        for (v1, edges) in self.al.iter() {
+            let id1 = v1.location.0 * 1000 + v1.location.1;
+            println!("  node{} [label=\"({},{})\"]", id1, v1.location.0, v1.location.1);
+            for edge in edges.iter() {
+                let v2 = &edge.to;
+                let id2 = v2.location.0 * 1000 + v2.location.1;
+                let weight = edge.weight;
+                if id2 > id1 {
+                    println!("  node{id1} -> node{id2} [dir=both,label={weight}]");
+                }
+            }
+        }
+        println!("}}");
+    }
 }
 
 impl Path {
@@ -371,7 +391,7 @@ impl super::Solution for DaySolution {
         let graph = Graph::from_maze(problem);
 
         // my beutiful graph
-        //println!("{:?}", graph);
+        //graph.to_graphviz();
 
         fn dfs(graph: &Graph, goal: &Location, path: Path, acc_length: usize) -> usize {
             let location = &path.current_location();
