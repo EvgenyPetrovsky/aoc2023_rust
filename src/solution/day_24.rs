@@ -34,7 +34,7 @@ impl fmt::Display for Particle {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "Particle [{:>3}, {:>3}, {:>3} @ {:>3}, {:>3}, {:>3}]",
+            "Particle [{:>2}, {:>2}, {:>2} @ {:>2}, {:>2}, {:>2}]",
             self.loc.0, self.loc.1, self.loc.2, self.vel.0, self.vel.1, self.vel.2
         )
     }
@@ -185,9 +185,9 @@ impl Particle {
     }
 
     fn trj_cross_on_xy_with(&self, other_particle: &Particle) -> Option<Cross> {
-        let unit = Rational64::from(1);
+        let zero = Rational64::from(0);
         let that = other_particle;
-        let debug = false;
+        let debug = true;
         if debug {
             println!("Collide {} with {}", self, that);
         }
@@ -198,16 +198,17 @@ impl Particle {
         let det_0 = b[0] * a[3] - a[1] * b[1];
         let det_1 = a[0] * b[1] - b[0] * a[2];
 
-        if det_m == unit * 0 {
+        if det_m == zero {
             None
         } else {
-            let time_1: Rational64 = det_0 / det_m;
-            let time_2: Rational64 = det_1 / det_m;
+            let time_1 = det_0 / det_m;
+            let time_2 = det_1 / det_m;
+            let location = self.location_at(&time_1);
             if debug {
                 println!(
                     " - collision in place: ({:>.3}, {:>.3}), at time of p1: {:>.3}, at time of p2: {:>.3}",
-                    time_1 * self.vel.0 + self.loc.0,
-                    time_1 * self.vel.1 + self.loc.1,
+                    location.0,
+                    location.1,
                     time_1,
                     time_2
                 );
@@ -217,10 +218,11 @@ impl Particle {
                 particle_2: other_particle.clone(),
                 time_1,
                 time_2,
-                location: self.location_at(&time_1),
+                location,
             })
         }
     }
+
 }
 
 pub struct DaySolution(P);
@@ -442,7 +444,7 @@ impl super::Solution for DaySolution {
     }
 
     fn solve_part_1(problem: Self::Problem) -> Self::Answer {
-        let test = true;
+        let test = false;
         let debug = false;
         let unit = Rational64::from(1);
         let zero = unit * 0;
@@ -450,8 +452,8 @@ impl super::Solution for DaySolution {
             (unit * 7, unit * 27)
         } else {
             (
-                unit * 200_000_000_000_000_i64,
-                unit * 400_000_000_000_000_i64,
+                Rational64::from(200_000_000_000_000_i64), //unit * 200_000_000_000_000_i64,
+                Rational64::from(400_000_000_000_000_i64), //unit * 400_000_000_000_000_i64,
             )
         };
 
