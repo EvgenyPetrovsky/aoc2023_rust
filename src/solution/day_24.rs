@@ -2,8 +2,10 @@ use num_rational::Rational64;
 use regex::Regex;
 use std::{fmt, iter::successors};
 
-const LST: i64 = 200_000_000_000_000;
-const MST: i64 = 400_000_000_000_000;
+// const LST: i64 = 200_000_000_000_000;
+// const MST: i64 = 400_000_000_000_000;
+const LST: i64 = 7;
+const MST: i64 = 27;
 
 type Time = Rational64;
 
@@ -106,7 +108,6 @@ impl Spiral {
 }
 
 impl Particle {
-
     fn from(from_str: &str) -> Self {
         fn to_i64(str: &str) -> i64 {
             str.parse::<i64>().unwrap()
@@ -201,8 +202,8 @@ impl Particle {
             if debug {
                 println!(
                     " - collision in place: ({:>.3}, {:>.3}), at time of p1: {:>.3}, at time of p2: {:>.3}",
-                    self.loc.0 + self.vel.0 * time_1.numer() / time_1.denom(),
-                    self.loc.1 + self.vel.1 * time_1.numer() / time_1.denom(),
+                    time_1 * self.vel.0 + self.loc.0,
+                    time_1 * self.vel.1 + self.loc.1,
                     time_1,
                     time_2
                 );
@@ -232,7 +233,7 @@ impl DaySolution {
 
         let (vx, vy) = vx_vy_candidates;
         let (hail1, hail2, rest_hails) = match &trajectories[..] {
-            [_, _, h1, h2, tail @ ..] => (h1.clone(), h2.clone(), Vec::from(tail)),
+            [h1, h2, tail @ ..] => (h1.clone(), h2.clone(), Vec::from(tail)),
             _ => panic!("trajectories have less than 2 elements!"),
         };
 
@@ -295,7 +296,7 @@ impl DaySolution {
             // Otherwise, it is not a valid solution
             if result.is_integer() {
                 let res = result.to_integer();
-                println!("compute_vz = {res}");
+                //println!("compute_vz = {res}");
                 Some(res)
             } else {
                 None
@@ -339,6 +340,11 @@ impl DaySolution {
                             vel: Velocity(vx, vy, vz),
                         };
                         println!("proposed particle = {proposed_particle:?}");
+                        println!(
+                            "test: p hits p1 = {}; p hits p2 = {}",
+                            proposed_particle.hits(&hail1),
+                            proposed_particle.hits(&hail2)
+                        );
                         if rest_hails.iter().all(|other| proposed_particle.hits(other)) {
                             let res = proposed_particle;
                             println!("_compute_perfect_shot = {res:?}");
@@ -415,7 +421,7 @@ impl super::Solution for DaySolution {
     fn solve_part_1(problem: Self::Problem) -> Self::Answer {
         let pi = problem.iter();
         let pi_1 = pi.clone();
-        let debug = false;
+        let debug = true;
         let answer = pi_1
             .clone()
             .enumerate()
@@ -471,17 +477,13 @@ impl super::Solution for DaySolution {
 
         ==================
 
-        after all struggle I surrendered abd blindly ported the solution
+        after all struggle I surrendered and blindly ported the solution
         from https://gitlab.com/javierbg/aoc2023/-/blob/main/24/perfectShot.sc
 
         */
 
-        //successors(Some(Spiral::new()), |s| s.grow())
-        //    .map(|s| s.pair_of_values())
-        (-5000..5000)
-            .flat_map(|x| {
-                (-5000..5000).map(move |y| (x as i64, y as i64))
-            })
+        successors(Some(Spiral::new()), |s| s.grow())
+            .map(|s| s.pair_of_values())
             .filter_map(|vx_vy_candidates| {
                 DaySolution::compute_perfect_shot(vx_vy_candidates, &problem)
             })
