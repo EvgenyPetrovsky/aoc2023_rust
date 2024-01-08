@@ -6,7 +6,7 @@ use std::io;
 #[command(author, version, about, long_about = None)]
 struct Cli {
     /// Day number to solve
-    #[arg(long)]
+    #[arg(short, long)]
     day: u8,
     /// Read data from standard input
     #[arg(short, long)]
