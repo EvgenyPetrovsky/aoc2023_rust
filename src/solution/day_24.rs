@@ -1,18 +1,21 @@
-use num_rational::Rational64;
+use num_rational::Ratio;
 use regex::Regex;
-use std::{fmt, iter::successors};
+use std::{fmt, iter::successors, str::FromStr};
 
 //const UNIT: Rational64 = Rational64::from(1_i64);
 //const UNIT: Rational64 = 1_i64.into();
 //const ZERO: Rational64 = UNIT * 0;
 
-type Time = Rational64;
+// Ratio<i64> is not enough for part 1 because denominators are getting very big
+type R = Ratio<i128>;
+
+type Time = R;
 
 #[derive(Debug, Clone)]
-struct Velocity(Rational64, Rational64, Rational64);
+struct Velocity(R, R, R);
 
 #[derive(Debug, Clone)]
-struct Location(Rational64, Rational64, Rational64);
+struct Location(R, R, R);
 
 #[derive(Debug, Clone)]
 pub struct Particle {
@@ -115,8 +118,8 @@ impl Spiral {
 
 impl Particle {
     fn from(from_str: &str) -> Self {
-        fn to_r64(str: &str) -> Rational64 {
-            Rational64::from(str.parse::<i64>().unwrap())
+        fn to_r64(str: &str) -> R {
+            R::from_str(str).unwrap()
         }
         let re =
             Regex::new(r#"(-?\d+), +(-?\d+), +(-?\d+) +@ +(-?\d+), +(-?\d+), +(-?\d+)"#).unwrap();
@@ -134,7 +137,7 @@ impl Particle {
     // port
     fn hits(&self, other: &Self) -> bool {
         let debug = false;
-        let unit = Rational64::from(1);
+        let unit = R::from(1);
         let zero = unit * 0;
         let Location(x0, y0, z0) = self.loc;
         let Velocity(vx, vy, vz) = self.vel;
@@ -152,7 +155,7 @@ impl Particle {
             // Check the time of the hit in x, y and z.
             // The trajectories hit each other if all times are equal
 
-            let tx: Rational64 = if x0i == x0 {
+            let tx: R = if x0i == x0 {
                 zero
             } else {
                 (x0i - x0) / (vx - vxi)
@@ -185,9 +188,9 @@ impl Particle {
     }
 
     fn trj_cross_on_xy_with(&self, other_particle: &Particle) -> Option<Cross> {
-        let zero = Rational64::from(0);
+        let zero = R::from(0);
         let that = other_particle;
-        let debug = true;
+        let debug = false;
         if debug {
             println!("Collide {} with {}", self, that);
         }
@@ -230,14 +233,14 @@ pub struct DaySolution(P);
 impl DaySolution {
     // port
     fn compute_perfect_shot(
-        vx_vy_candidates: (Rational64, Rational64),
+        vx_vy_candidates: (R, R),
         trajectories: &Vec<Particle>,
     ) -> Option<Particle> {
         // Implementing the original idea by /u/UnicycleBloke:
         // https://www.reddit.com/r/adventofcode/comments/18q7d47/2023_day_24_part_2_a_mathematical_technique_for/keubuig/
 
         //println!("compute_perfect_shot for {vx_vy_candidates:?}");
-        let unit = Rational64::from(1);
+        let unit = R::from(1);
 
         let (vx, vy) = vx_vy_candidates;
         //let debug = true || (vx == unit * -3) && (vy == unit);
@@ -258,9 +261,9 @@ impl DaySolution {
         let Location(x02, y02, z02) = hail2.loc;
         let Velocity(vx2, vy2, vz2) = hail2.vel;
 
-        //fn compute_t1t2(vx: i64, vy: i64) -> Option<(Rational64, Rational64)> {
+        //fn compute_t1t2(vx: i64, vy: i64) -> Option<(R, R)> {
 
-        let compute_t1t2 = |vx: Rational64, vy: Rational64| {
+        let compute_t1t2 = |vx: R, vy: R| {
             // The differences between the two hails' positions at times t1 and t2
             // are related such that:
             //      (x01 + vx1 * t1) - (x02 + vx2 * t2) = (x0 + vx * t1) - (x0 + vx * t2)
@@ -290,7 +293,7 @@ impl DaySolution {
 
                 // If t1 or t2 are negative, the rock would have hit the hail in the past,
                 // so it is not valid
-                if (t1 < Rational64::from(0)) || (t2 < Rational64::from(0)) {
+                if (t1 < R::from(0)) || (t2 < R::from(0)) {
                     None
                 } else {
                     let res = (t1, t2);
@@ -303,10 +306,10 @@ impl DaySolution {
         };
 
         //def computeVZ(t1: Rational, t2: Rational): Option[i64] = {
-        let compute_vz = |t1: Rational64, t2: Rational64| {
-            let num: Rational64 = (z01 + vz1 * t1) - (z02 + vz2 * t2);
-            let den: Rational64 = t1 - t2;
-            let result: Rational64 = num / den;
+        let compute_vz = |t1: R, t2: R| {
+            let num: R = (z01 + vz1 * t1) - (z02 + vz2 * t2);
+            let den: R = t1 - t2;
+            let result: R = num / den;
 
             // All of the components of the velocities must be integers
             // Otherwise, it is not a valid solution
@@ -323,10 +326,10 @@ impl DaySolution {
 
         //def computeInitialPos(t1: Rational, vx: i64, vy: i64, vz: i64): Option[(i64, i64, i64)] = {
         let compute_initial_pos =
-            |t1: Rational64, vx: Rational64, vy: Rational64, vz: Rational64| {
-                let x0: Rational64 = x01 + (vx1 - vx) * t1;
-                let y0: Rational64 = y01 + (vy1 - vy) * t1;
-                let z0: Rational64 = z01 + (vz1 - vz) * t1;
+            |t1: R, vx: R, vy: R, vz: R| {
+                let x0: R = x01 + (vx1 - vx) * t1;
+                let y0: R = y01 + (vy1 - vy) * t1;
+                let z0: R = z01 + (vz1 - vz) * t1;
 
                 // All of the components of the initial position must be integers
                 // Otherwise, it is not a valid solution
@@ -342,7 +345,7 @@ impl DaySolution {
             };
 
         //fn _computePerfectShot(vx: i64, vy: i64): Option[Trajectory] = {
-        let _compute_perfect_shot = |vx: Rational64, vy: Rational64| {
+        let _compute_perfect_shot = |vx: R, vy: R| {
             /*
             compute_t1t2(vx, vy).flatMap({ case (t1, t2) =>
             compute_vz(t1, t2).flatMap(vz => {
@@ -446,14 +449,14 @@ impl super::Solution for DaySolution {
     fn solve_part_1(problem: Self::Problem) -> Self::Answer {
         let test = false;
         let debug = false;
-        let unit = Rational64::from(1);
+        let unit = R::from(1);
         let zero = unit * 0;
         let (p_lst, p_mst) = if test {
             (unit * 7, unit * 27)
         } else {
             (
-                Rational64::from(200_000_000_000_000_i64), //unit * 200_000_000_000_000_i64,
-                Rational64::from(400_000_000_000_000_i64), //unit * 400_000_000_000_000_i64,
+                R::from(200_000_000_000_000_i128), //unit * 200_000_000_000_000_i64,
+                R::from(400_000_000_000_000_i128), //unit * 400_000_000_000_000_i64,
             )
         };
 
@@ -526,7 +529,7 @@ impl super::Solution for DaySolution {
         successors(Some(Spiral::new()), |s| s.grow())
             .map(|s| {
                 let (vx, vy) = s.pair_of_values();
-                (Rational64::from(vx), Rational64::from(vy))
+                (R::from(vx as i128), R::from(vy as i128))
             })
             .filter_map(|vx_vy_candidates| {
                 DaySolution::compute_perfect_shot(vx_vy_candidates, &problem)
@@ -539,6 +542,7 @@ impl super::Solution for DaySolution {
             )
             .take(1)
             .nth(0)
+            .map(|x| x as i64)
 
         // None
     }
@@ -564,7 +568,7 @@ mod test {
     }
     #[test]
     fn particle_hits() {
-        let unit = Rational64::from(1);
+        let unit = R::from(1);
         let p = Particle {
             loc: Location(unit * 24, unit * 13, unit * 10),
             vel: Velocity(unit * -3, unit, unit * 2),
