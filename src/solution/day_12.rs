@@ -102,8 +102,7 @@ impl DaySolution {
             } else {
                 let (n1, m1) =
                     Self::rev_calculate(spr, brk, pos - 1, idx, rem - 1, req - 1, memory);
-                let (n2, mut m2) =
-                    Self::rev_calculate(spr, brk, pos - 1, idx, rem, req, m1);
+                let (n2, mut m2) = Self::rev_calculate(spr, brk, pos - 1, idx, rem, req, m1);
                 m2.insert((pos, idx), n1 + n2);
                 //println!(">> add cache entry [pos:{}, idx:{}] => {}", pos, idx, n1+n2);
                 (n1 + n2, m2)
@@ -202,10 +201,7 @@ impl super::Solution for DaySolution {
     }
 
     fn solve_part_1(problem: Self::Problem) -> Self::Answer {
-        let answer = problem
-            .iter()
-            .map(DaySolution::process_one_record)
-            .sum();
+        let answer = problem.iter().map(DaySolution::process_one_record).sum();
         Some(answer)
     }
 

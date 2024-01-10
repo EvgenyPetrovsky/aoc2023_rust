@@ -51,9 +51,11 @@ struct Vertex {
 pub struct DaySolution(P);
 
 impl Graph {
-
     fn new() -> Self {
-        Self {v: HashSet::new(), al: HashMap::new()}
+        Self {
+            v: HashSet::new(),
+            al: HashMap::new(),
+        }
     }
 
     fn from_maze(maze: HikingMap) -> Self {
@@ -71,22 +73,22 @@ impl Graph {
             match nls.len() {
                 0 => {
                     if partial_path.current_location() == maze.find_finish_location()
-                    || partial_path.current_location() == maze.find_start_location() {
+                        || partial_path.current_location() == maze.find_start_location()
+                    {
                         partial_path
                     } else {
                         panic!("Path leads to dead-end: {:?}", partial_path)
                     }
-                },
+                }
                 1 => {
                     let new_location: Location = nls[0];
                     walk_the_edge(maze, partial_path.extend_to(&new_location))
-                },
-                _ => partial_path
+                }
+                _ => partial_path,
             }
         }
         // processes vertices
         fn iterate(maze: &HikingMap, graph: Graph, vertex: &Vertex) -> Graph {
-
             let init_path = Path::new(&vertex.location);
 
             valid_locations(maze, &init_path)
@@ -105,7 +107,9 @@ impl Graph {
                     new_graph
                         .al
                         .entry(vertex.clone())
-                        .and_modify(|es| {es.insert(new_edge.clone());} )
+                        .and_modify(|es| {
+                            es.insert(new_edge.clone());
+                        })
                         .or_insert(HashSet::from([new_edge.clone()]));
 
                     if new_graph.v.contains(&new_vertex) {
@@ -116,7 +120,13 @@ impl Graph {
                     }
                 })
         }
-        iterate(&maze, Self::new(), &Vertex { location: maze.find_start_location() })
+        iterate(
+            &maze,
+            Self::new(),
+            &Vertex {
+                location: maze.find_start_location(),
+            },
+        )
     }
 
     fn _to_graphviz(&self) {
@@ -126,7 +136,10 @@ impl Graph {
 
         for (v1, edges) in self.al.iter() {
             let id1 = v1.location.0 * 1000 + v1.location.1;
-            println!("  node{} [label=\"({},{})\"]", id1, v1.location.0, v1.location.1);
+            println!(
+                "  node{} [label=\"({},{})\"]",
+                id1, v1.location.0, v1.location.1
+            );
             for edge in edges.iter() {
                 let v2 = &edge.to;
                 let id2 = v2.location.0 * 1000 + v2.location.1;
@@ -395,8 +408,15 @@ impl super::Solution for DaySolution {
 
         fn dfs(graph: &Graph, goal: &Location, path: Path, acc_length: usize) -> usize {
             let location = &path.current_location();
-            if location == goal { return acc_length }
-            graph.al.get(&Vertex{ location: (&path).current_location() }).unwrap()
+            if location == goal {
+                return acc_length;
+            }
+            graph
+                .al
+                .get(&Vertex {
+                    location: (&path).current_location(),
+                })
+                .unwrap()
                 .iter()
                 .filter(|edge| !path.visited_location(&edge.to.location))
                 .fold(0, |max_length, edge| {

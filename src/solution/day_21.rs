@@ -1,5 +1,5 @@
-use std::collections::HashSet;
 use super::day_09;
+use std::collections::HashSet;
 
 enum Tile {
     Plot,
@@ -50,7 +50,8 @@ impl Garden {
                     Tile::Plot => true,
                     Tile::Start => true,
                     _ => false,
-                }})
+                }
+            })
             .collect()
     }
 }
@@ -62,7 +63,7 @@ impl DaySolution {
                 '.' => Tile::Plot,
                 'S' => Tile::Start,
                 '#' => Tile::Rock,
-                _ => unreachable!()
+                _ => unreachable!(),
             })
             .collect()
     }
@@ -124,16 +125,15 @@ impl super::Solution for DaySolution {
         */
         //
         let total_steps = 26501365;
-        let min_req_sequence = 131*2+65;
+        let min_req_sequence = 131 * 2 + 65;
         let garden = problem;
 
         // first we solve problem for monimum required number of steps to get the sequence
         let start_location = garden.start();
         let locations: HashSet<Location> = HashSet::from([start_location]);
-        let init_sequence: Vec<i64> = (1..(min_req_sequence+1))
+        let init_sequence: Vec<i64> = (1..(min_req_sequence + 1))
             .scan(locations, |locations, _| {
-                let new_locations =
-                    locations
+                let new_locations = locations
                     .iter()
                     .flat_map(|location| garden.adj_plots(location))
                     .collect::<HashSet<Location>>();
@@ -142,7 +142,7 @@ impl super::Solution for DaySolution {
             })
             .map(|ls| ls.len())
             .enumerate()
-            .filter(|(idx, _)| (idx+1) % 131 == 65)
+            .filter(|(idx, _)| (idx + 1) % 131 == 65)
             .map(|(_idx, n)| {
                 println!("{:>5}: {:>12}", _idx, n);
                 n as i64
@@ -150,8 +150,7 @@ impl super::Solution for DaySolution {
             .collect();
 
         // then we extrapolate the sequence to the desired number of steps
-        let answer =
-            ((min_req_sequence+1)..(total_steps+1))
+        let answer = ((min_req_sequence + 1)..(total_steps + 1))
             .filter(|idx| idx % 131 == 65)
             .fold(init_sequence, |z, _| {
                 let next = day_09::DaySolution::find_next_number(0, &z);

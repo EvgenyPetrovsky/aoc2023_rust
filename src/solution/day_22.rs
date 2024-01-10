@@ -123,7 +123,6 @@ impl DaySolution {
         } else {
             bricks
         }
-
     }
 }
 

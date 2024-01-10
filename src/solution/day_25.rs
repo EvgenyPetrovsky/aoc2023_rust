@@ -159,7 +159,12 @@ impl super::Solution for DaySolution {
             name: String::from("txc"),
         });
 
-        println!("Total number of components: {}, 1st group: {}, 2nd group: {}", g_red.vs.len(), g1_count, g2_count);
+        println!(
+            "Total number of components: {}, 1st group: {}, 2nd group: {}",
+            g_red.vs.len(),
+            g1_count,
+            g2_count
+        );
 
         let answer = g1_count * g2_count;
         Some(answer)

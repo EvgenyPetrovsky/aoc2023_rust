@@ -183,7 +183,6 @@ impl DaySolution {
     fn lcm(a: usize, b: usize) -> usize {
         (a * b) / Self::gcd(a, b)
     }
-
 }
 
 impl State {
@@ -442,25 +441,24 @@ impl super::Solution for DaySolution {
         // modules feeding zh: xc, th, pd, bp
 
         // use while loop to avoid overflow
-        let (_, first_pulses) = (0..100_000)
-            .fold((network, init), |(network, mut pulses), cnt: usize| {
+        let (_, first_pulses) =
+            (0..100_000).fold((network, init), |(network, mut pulses), cnt: usize| {
                 let (new_network, new_pulses) = DaySolution::push_button(network, true);
 
                 new_pulses
                     .iter()
                     .filter(|p| {
-                        p.cable.from == "xc" && p.signal == Signal::Hi ||
-                        p.cable.from == "th" && p.signal == Signal::Hi ||
-                        p.cable.from == "pd" && p.signal == Signal::Hi ||
-                        p.cable.from == "bp" && p.signal == Signal::Hi
+                        p.cable.from == "xc" && p.signal == Signal::Hi
+                            || p.cable.from == "th" && p.signal == Signal::Hi
+                            || p.cable.from == "pd" && p.signal == Signal::Hi
+                            || p.cable.from == "bp" && p.signal == Signal::Hi
                     })
                     .for_each(|p| {
                         if !pulses.contains_key(&p.cable.from) {
-                            pulses.insert(p.cable.from.clone(), cnt+1);
+                            pulses.insert(p.cable.from.clone(), cnt + 1);
                         }
                     });
                 (new_network, pulses)
-
             });
 
         let answer = first_pulses

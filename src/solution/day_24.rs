@@ -225,7 +225,6 @@ impl Particle {
             })
         }
     }
-
 }
 
 pub struct DaySolution(P);
@@ -325,24 +324,23 @@ impl DaySolution {
         };
 
         //def computeInitialPos(t1: Rational, vx: i64, vy: i64, vz: i64): Option[(i64, i64, i64)] = {
-        let compute_initial_pos =
-            |t1: R, vx: R, vy: R, vz: R| {
-                let x0: R = x01 + (vx1 - vx) * t1;
-                let y0: R = y01 + (vy1 - vy) * t1;
-                let z0: R = z01 + (vz1 - vz) * t1;
+        let compute_initial_pos = |t1: R, vx: R, vy: R, vz: R| {
+            let x0: R = x01 + (vx1 - vx) * t1;
+            let y0: R = y01 + (vy1 - vy) * t1;
+            let z0: R = z01 + (vz1 - vz) * t1;
 
-                // All of the components of the initial position must be integers
-                // Otherwise, it is not a valid solution
-                if x0.is_integer() && y0.is_integer() && z0.is_integer() {
-                    let res = Location(x0, y0, z0);
-                    if debug {
-                        println!("compute_initial_pos = {res:?}");
-                    }
-                    Some(res)
-                } else {
-                    None
+            // All of the components of the initial position must be integers
+            // Otherwise, it is not a valid solution
+            if x0.is_integer() && y0.is_integer() && z0.is_integer() {
+                let res = Location(x0, y0, z0);
+                if debug {
+                    println!("compute_initial_pos = {res:?}");
                 }
-            };
+                Some(res)
+            } else {
+                None
+            }
+        };
 
         //fn _computePerfectShot(vx: i64, vy: i64): Option[Trajectory] = {
         let _compute_perfect_shot = |vx: R, vy: R| {
