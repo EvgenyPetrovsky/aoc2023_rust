@@ -1,6 +1,8 @@
 use clap::Parser;
 use std::io;
 
+const YEAR: i32 = 2023;
+
 /// Advent of Code 2023 launcher
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -8,6 +10,14 @@ struct Cli {
     /// Day number to solve
     #[arg(short, long)]
     day: u8,
+    /// get input data for day problem from site
+    /*
+    For this option to work, SESSION file is required. Session file must contain the 'session' variable of cookie for advent of code site.
+    More details on how to obtain session can be found here:
+    https://www.reddit.com/r/adventofcode/comments/a2vonl/how_to_download_inputs_with_a_script/
+    */
+    #[arg(short, long)]
+    get_input: bool,
     /// Read data from standard input
     #[arg(short, long)]
     stdin: bool,
@@ -22,6 +32,7 @@ struct Cli {
 use solution::Solution;
 
 mod solution;
+mod utils;
 
 pub enum Part {
     One,
@@ -50,17 +61,21 @@ fn main() {
     let args = Cli::parse();
     let day = args.day;
     let mode = if args.test { Mode::Test } else { Mode::Real };
+    let dlin = args.get_input;
     // standard input
     let stdin: Option<String> = if args.stdin {
         io::read_to_string(io::stdin()).ok()
     } else {
         None
     };
-    // redefine mode
-    let answer_1 = get_solution(day, Part::One, mode, &stdin);
-    let answer_2 = get_solution(day, Part::Two, mode, &stdin);
-    println!("The part 1 answer is: {}", answer_1);
-    println!("The part 2 answer is: {}", answer_2);
+    if dlin {
+        utils::download_input(YEAR, day as u32).unwrap();
+    } else {
+        let answer_1 = get_solution(day, Part::One, mode, &stdin);
+        let answer_2 = get_solution(day, Part::Two, mode, &stdin);
+        println!("The part 1 answer is: {}", answer_1);
+        println!("The part 2 answer is: {}", answer_2);
+    }
 }
 
 fn get_solution(day: Day, part: Part, mode: Mode, stdin: &Option<String>) -> String {
